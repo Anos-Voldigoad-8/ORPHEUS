@@ -1,0 +1,58 @@
+# ============================================
+# ORPHEUS .gitignore — Protect All Secrets
+# ============================================
+
+# Environment & Secrets
+.env
+*.key
+*.pem
+
+# Database (contains encrypted user data)
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+
+# Logs (encrypted black-box logs)
+logs/
+*.log
+
+# Audio recordings (voice biometrics)
+assets/audio/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# OS
+Thumbs.db
+.DS_Store
+Desktop.ini
+ehthumbs.db
+
+# Node (in case of future frontend build)
+node_modules/
+package-lock.json
+
+# Workspace (user-generated files)
+workspace/

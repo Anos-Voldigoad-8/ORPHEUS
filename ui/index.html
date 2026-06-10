@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ORPHEUS — Omni-Responsive Processing Matrix. A futuristic AI command center and intelligent assistant dashboard.">
+  <meta name="theme-color" content="#030712">
+  <title>ORPHEUS — Omni-Responsive Processing Matrix</title>
+  <link rel="stylesheet" href="/ui/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>">
+</head>
+<body>
+  <!-- Background Layers -->
+  <div class="bg-grid"></div>
+  <div class="bg-radial"></div>
+  <div class="scanline-overlay"></div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- App Shell -->
+  <div class="app-shell">
+
+    <!-- ═══ HEADER ═══ -->
+    <header class="header" id="app-header">
+      <div class="header__brand">
+        <span class="header__logo">ORPHEUS</span>
+        <span class="header__subtitle">// OMNI-RESPONSIVE PROCESSING MATRIX</span>
+      </div>
+
+      <div class="header__center">
+        <div class="header__status">
+          <div class="status-indicator connecting" id="status-dot"></div>
+          <span class="status-label" id="status-label">LINKING...</span>
+        </div>
+      </div>
+
+      <div class="header__actions">
+        <button class="btn-icon btn-voice" id="btn-voice" title="Toggle Voice Command">
+          🎙️
+        </button>
+        <div class="header__clock" id="header-clock">00:00:00</div>
+      </div>
+    </header>
+
+    <!-- ═══ SIDEBAR ═══ -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar__nav">
+        <div class="nav-section-label">COMMAND CENTER</div>
+
+        <div class="nav-item active" data-view="dashboard" id="nav-dashboard">
+          <span class="nav-item__icon">📊</span>
+          <span class="nav-item__label">Dashboard</span>
+        </div>
+
+        <div class="nav-item" data-view="chat" id="nav-chat">
+          <span class="nav-item__icon">💬</span>
+          <span class="nav-item__label">Neural Chat</span>
+        </div>
+
+        <div class="nav-item" data-view="agents" id="nav-agents">
+          <span class="nav-item__icon">🤖</span>
+          <span class="nav-item__label">Agent Network</span>
+        </div>
+
+        <div class="nav-section-label">OPERATIONS</div>
+
+        <div class="nav-item" data-view="files" id="nav-files">
+          <span class="nav-item__icon">📁</span>
+          <span class="nav-item__label">File System</span>
+        </div>
+
+        <div class="nav-item" data-view="settings" id="nav-settings">
+          <span class="nav-item__icon">⚙️</span>
+          <span class="nav-item__label">Settings</span>
+        </div>
+      </div>
+
+      <div class="sidebar__footer">
+        <div class="sidebar__user">
+          <div class="user-avatar">L</div>
+          <div class="user-info">
+            <div class="user-info__name">Commander</div>
+            <div class="user-info__role">ADMIN ACCESS</div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <main class="main-content" id="main-content">
+
+      <!-- ──── DASHBOARD VIEW ──── -->
+      <div class="view active" id="view-dashboard">
+        <div class="dashboard-view">
+
+          <!-- Stats Row -->
+          <div class="stats-row">
+            <div class="stat-card stat-card--cyan holo-shimmer">
+              <div class="stat-card__header">
+                <span class="stat-card__label">CPU LOAD</span>
+                <span class="stat-card__icon">⚡</span>
+              </div>
+              <div class="stat-card__value" id="metric-cpu">0.0%</div>
+              <div class="stat-card__sub" id="metric-cpu-sub">— cores</div>
+            </div>
+
+            <div class="stat-card stat-card--purple holo-shimmer">
+              <div class="stat-card__header">
+                <span class="stat-card__label">MEMORY</span>
+                <span class="stat-card__icon">🧠</span>
+              </div>
+              <div class="stat-card__value" id="metric-ram">0.0%</div>
+              <div class="stat-card__sub" id="metric-ram-sub">— / —</div>
+            </div>
+
+            <div class="stat-card stat-card--green holo-shimmer">
+              <div class="stat-card__header">
+                <span class="stat-card__label">DISK</span>
+                <span class="stat-card__icon">💾</span>
+              </div>
+              <div class="stat-card__value" id="metric-disk">0.0%</div>
+              <div class="stat-card__sub" id="metric-disk-sub">storage</div>
+            </div>
+
+            <div class="stat-card stat-card--amber holo-shimmer">
+              <div class="stat-card__header">
+                <span class="stat-card__label">UPTIME</span>
+                <span class="stat-card__icon">⏱️</span>
+              </div>
+              <div class="stat-card__value" id="metric-uptime">—</div>
+              <div class="stat-card__sub">system runtime</div>
+            </div>
+          </div>
+
+          <!-- AI Core + Agent Grid -->
+          <div class="ai-core-section">
+            <!-- AI Core Visualizer -->
+            <div class="ai-core-card">
+              <canvas id="particle-canvas"></canvas>
+              <div class="ai-core-label">
+                <div class="ai-core-label__title">NEURAL CORE</div>
+                <div class="ai-core-label__status">PROCESSING MATRIX ACTIVE</div>
+              </div>
+            </div>
+
+            <!-- Agent Status Grid -->
+            <div class="agent-grid">
+              <div class="agent-card" data-agent="commander">
+                <div class="agent-card__header">
+                  <div class="agent-dot"></div>
+                  <span class="agent-card__name">COMMANDER</span>
+                </div>
+                <div class="agent-card__role">Intent Router & Orchestrator</div>
+              </div>
+
+              <div class="agent-card" data-agent="fileos">
+                <div class="agent-card__header">
+                  <div class="agent-dot"></div>
+                  <span class="agent-card__name">FILE_OS</span>
+                </div>
+                <div class="agent-card__role">File & OS Operations</div>
+              </div>
+
+              <div class="agent-card" data-agent="webresearch">
+                <div class="agent-card__header">
+                  <div class="agent-dot"></div>
+                  <span class="agent-card__name">WEB_RESEARCH</span>
+                </div>
+                <div class="agent-card__role">Internet Research Agent</div>
+              </div>
+
+              <div class="agent-card" data-agent="llm">
+                <div class="agent-card__header">
+                  <div class="agent-dot"></div>
+                  <span class="agent-card__name">LLM_CORE</span>
+                </div>
+                <div class="agent-card__role">Conversational AI Engine</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Panel (Right Side) -->
+          <div class="activity-panel">
+            <div class="panel-card" style="flex: 1;">
+              <div class="panel-card__header">
+                <span class="panel-card__title">⚡ LIVE ACTIVITY</span>
+              </div>
+              <div class="panel-card__body" id="activity-feed">
+                <!-- Activity items appear here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Console Panel (Bottom) -->
+          <div class="console-panel" style="grid-column: 1 / -1;">
+            <div class="panel-card">
+              <div class="panel-card__header">
+                <span class="panel-card__title">▸ SYSTEM CONSOLE</span>
+              </div>
+              <div class="panel-card__body" id="console-log-body">
+                <!-- Log lines appear here -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ──── CHAT VIEW ──── -->
+      <div class="view" id="view-chat">
+        <div class="chat-view">
+          <div class="chat-messages" id="chat-messages">
+            <!-- Chat messages appear here -->
+          </div>
+
+          <!-- Typing Indicator -->
+          <div class="typing-indicator" id="typing-indicator">
+            <div class="typing-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <span class="typing-label">ORPHEUS is processing...</span>
+          </div>
+
+          <!-- Chat Input -->
+          <div class="chat-input-area">
+            <div class="chat-input-wrapper">
+              <button class="btn-icon btn-voice" onclick="window.orpheus.toggleVoice()" title="Voice Input">
+                🎙️
+              </button>
+              <textarea
+                class="chat-input"
+                id="chat-input"
+                placeholder="Command ORPHEUS... (Enter to send, Shift+Enter for newline)"
+                rows="1"
+              ></textarea>
+              <button class="btn-send" id="btn-send" title="Send Command">
+                ▶
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ──── AGENTS VIEW ──── -->
+      <div class="view" id="view-agents">
+        <div class="agents-view">
+          <div class="agents-view__header">
+            <h1 class="view-title">AGENT NETWORK</h1>
+            <p class="view-subtitle">Multi-agent orchestration system — specialized AI units working in concert</p>
+          </div>
+
+          <div class="agents-detail-grid">
+            <div class="agent-detail-card commander" data-agent="commander">
+              <div class="agent-detail-card__icon">🎯</div>
+              <div class="agent-detail-card__name">COMMANDER</div>
+              <div class="agent-detail-card__desc">
+                The central orchestrator. Parses natural language intent and routes commands
+                to the most capable agent. Manages execution flow and context.
+              </div>
+              <div class="agent-detail-card__stats">
+                <div class="agent-stat">
+                  <div class="agent-stat__val agent-tasks-val">0</div>
+                  <div class="agent-stat__label">Tasks</div>
+                </div>
+                <div class="agent-stat">
+                  <div class="agent-stat__val">Active</div>
+                  <div class="agent-stat__label">Status</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="agent-detail-card fileos" data-agent="fileos">
+              <div class="agent-detail-card__icon">📂</div>
+              <div class="agent-detail-card__name">FILE_OS</div>
+              <div class="agent-detail-card__desc">
+                Secure file system operator. Reads, writes, creates, and executes files
+                within the sandboxed workspace. All operations are path-validated.
+              </div>
+              <div class="agent-detail-card__stats">
+                <div class="agent-stat">
+                  <div class="agent-stat__val agent-tasks-val">0</div>
+                  <div class="agent-stat__label">Tasks</div>
+                </div>
+                <div class="agent-stat">
+                  <div class="agent-stat__val">Active</div>
+                  <div class="agent-stat__label">Status</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="agent-detail-card webresearch" data-agent="webresearch">
+              <div class="agent-detail-card__icon">🌐</div>
+              <div class="agent-detail-card__name">WEB_RESEARCH</div>
+              <div class="agent-detail-card__desc">
+                Internet research specialist. Searches the web via DuckDuckGo,
+                retrieves and summarizes relevant information for any query.
+              </div>
+              <div class="agent-detail-card__stats">
+                <div class="agent-stat">
+                  <div class="agent-stat__val agent-tasks-val">0</div>
+                  <div class="agent-stat__label">Tasks</div>
+                </div>
+                <div class="agent-stat">
+                  <div class="agent-stat__val">Active</div>
+                  <div class="agent-stat__label">Status</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="agent-detail-card creator" data-agent="creator">
+              <div class="agent-detail-card__icon">✨</div>
+              <div class="agent-detail-card__name">CREATOR</div>
+              <div class="agent-detail-card__desc">
+                Content generation engine. Produces code, documents, quizzes,
+                and structured data on demand. Outputs saved to workspace.
+              </div>
+              <div class="agent-detail-card__stats">
+                <div class="agent-stat">
+                  <div class="agent-stat__val agent-tasks-val">0</div>
+                  <div class="agent-stat__label">Tasks</div>
+                </div>
+                <div class="agent-stat">
+                  <div class="agent-stat__val">Active</div>
+                  <div class="agent-stat__label">Status</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="agent-detail-card llm" data-agent="llm">
+              <div class="agent-detail-card__icon">🧠</div>
+              <div class="agent-detail-card__name">LLM_CORE</div>
+              <div class="agent-detail-card__desc">
+                The conversational brain. Handles general reasoning, Q&A, code generation,
+                analysis, and creative tasks via large language model inference.
+              </div>
+              <div class="agent-detail-card__stats">
+                <div class="agent-stat">
+                  <div class="agent-stat__val agent-tasks-val">0</div>
+                  <div class="agent-stat__label">Tasks</div>
+                </div>
+                <div class="agent-stat">
+                  <div class="agent-stat__val">Active</div>
+                  <div class="agent-stat__label">Status</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ──── FILES VIEW ──── -->
+      <div class="view" id="view-files">
+        <div class="files-view">
+          <div class="agents-view__header">
+            <h1 class="view-title">FILE SYSTEM</h1>
+            <p class="view-subtitle">Sandboxed workspace — secure file operations</p>
+          </div>
+          <div class="file-list" id="file-list">
+            <div class="empty-state">
+              <div class="empty-state__icon">📁</div>
+              <div class="empty-state__title">LOADING WORKSPACE</div>
+              <div class="empty-state__text">Scanning file system...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ──── SETTINGS VIEW ──── -->
+      <div class="view" id="view-settings">
+        <div class="settings-view">
+          <div class="agents-view__header">
+            <h1 class="view-title">SYSTEM SETTINGS</h1>
+            <p class="view-subtitle">Configure ORPHEUS behavior and preferences</p>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group__title">🎙️ Voice & Audio</div>
+            <div class="setting-item">
+              <div>
+                <div class="setting-item__label">Voice Commands</div>
+                <div class="setting-item__desc">Enable browser-based speech recognition</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="setting-voice">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div>
+                <div class="setting-item__label">Voice Response (TTS)</div>
+                <div class="setting-item__desc">ORPHEUS speaks responses aloud</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="setting-tts">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group__title">🎨 Appearance</div>
+            <div class="setting-item">
+              <div>
+                <div class="setting-item__label">Scanline Effect</div>
+                <div class="setting-item__desc">Retro CRT scanline overlay</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="setting-scanlines" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div>
+                <div class="setting-item__label">Particle System</div>
+                <div class="setting-item__desc">Neural core visualization</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="setting-particles" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group__title">🔗 Connection</div>
+            <div class="setting-item">
+              <div>
+                <div class="setting-item__label">WebSocket Auto-Reconnect</div>
+                <div class="setting-item__desc">Automatically reconnect on connection loss</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="setting-reconnect" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/ui/particles.js"></script>
+  <script src="/ui/app.js"></script>
+</body>
+</html>
