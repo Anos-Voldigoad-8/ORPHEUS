@@ -198,3 +198,92 @@
 
     animate();
 })();
+
+// ============================================================
+// LOGIN AUTHENTICATION LOGIC
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const loginForm = document.getElementById('login-form');
+    const guestBtn = document.getElementById('guest-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.querySelector('.btn-text');
+    const loader = document.getElementById('loader');
+    const errorMessage = document.getElementById('error-message');
+
+    function setLoading(isLoading) {
+        if(isLoading) {
+            submitBtn.disabled = true;
+            btnText.style.display = 'none';
+            loader.style.display = 'inline-block';
+            guestBtn.disabled = true;
+        } else {
+            submitBtn.disabled = false;
+            btnText.style.display = 'inline-block';
+            loader.style.display = 'none';
+            guestBtn.disabled = false;
+        }
+    }
+
+    function showError(msg) {
+        errorMessage.textContent = msg;
+        setTimeout(() => errorMessage.textContent = '', 5000);
+    }
+
+    // Email Login
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        
+        setLoading(true);
+        errorMessage.textContent = '';
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            });
+
+            if(response.ok) {
+                // Success! Redirect to app
+                window.location.href = '/app';
+            } else if (response.status === 429) {
+                showError("RATE LIMIT EXCEEDED: MAXIMUM ATTEMPTS REACHED. PLEASE WAIT 15 MINUTES.");
+            } else {
+                const data = await response.json();
+                showError(data.message || 'Authentication failed. Neural link rejected.');
+            }
+        } catch (err) {
+            showError('Network error. Unable to establish connection to ORPHEUS core.');
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    // Guest Login
+    guestBtn.addEventListener('click', async () => {
+        setLoading(true);
+        errorMessage.textContent = '';
+
+        try {
+            const response = await fetch('/api/guest_login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if(response.ok) {
+                // Success! Redirect to app
+                window.location.href = '/app';
+            } else if (response.status === 429) {
+                showError("RATE LIMIT EXCEEDED: MAXIMUM ATTEMPTS REACHED. PLEASE WAIT 15 MINUTES.");
+            } else {
+                showError('Guest access denied.');
+            }
+        } catch (err) {
+            showError('Network error. Unable to establish connection to ORPHEUS core.');
+        } finally {
+            setLoading(false);
+        }
+    });
+});

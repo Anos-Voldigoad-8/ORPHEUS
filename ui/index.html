@@ -6,7 +6,7 @@
   <meta name="description" content="ORPHEUS — Omni-Responsive Processing Matrix. A futuristic AI command center and intelligent assistant dashboard.">
   <meta name="theme-color" content="#030712">
   <title>ORPHEUS — Omni-Responsive Processing Matrix</title>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="/ui/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>">
 </head>
 <body>
@@ -53,6 +53,11 @@
           <span class="nav-item__label">Dashboard</span>
         </div>
 
+        <div class="nav-item" data-view="overview" id="nav-overview">
+          <span class="nav-item__icon">ℹ️</span>
+          <span class="nav-item__label">System Overview</span>
+        </div>
+
         <div class="nav-item" data-view="chat" id="nav-chat">
           <span class="nav-item__icon">💬</span>
           <span class="nav-item__label">Neural Chat</span>
@@ -89,6 +94,30 @@
 
     <!-- ═══ MAIN CONTENT ═══ -->
     <main class="main-content" id="main-content">
+
+      <!-- ──── OVERVIEW VIEW ──── -->
+      <div class="view" id="view-overview">
+        <div class="agents-view">
+          <div class="agents-view__header">
+            <h1 class="view-title">SYSTEM OVERVIEW</h1>
+            <p class="view-subtitle">Welcome to ORPHEUS — Omni-Responsive Processing Matrix</p>
+          </div>
+          <div style="padding: 20px; line-height: 1.8; color: var(--text-muted); max-width: 800px;">
+            <h2 style="color: var(--cyan); margin-bottom: 15px;">What is ORPHEUS?</h2>
+            <p style="margin-bottom: 20px;">ORPHEUS is an advanced Neural Network Orchestrator. Designed to act as an all-in-one AI command center, it seamlessly delegates intent to a suite of highly specialized autonomous agents.</p>
+            
+            <h2 style="color: var(--cyan); margin-bottom: 15px;">Core Capabilities</h2>
+            <ul style="margin-left: 20px; margin-bottom: 20px;">
+                <li style="margin-bottom: 10px;"><strong>Conversational Intelligence:</strong> Powered by the latest language models to understand and execute natural language requests.</li>
+                <li style="margin-bottom: 10px;"><strong>Agentic Automation:</strong> A network of specialized agents capable of coding, file system operations, and internet research.</li>
+                <li style="margin-bottom: 10px;"><strong>Secure Local Execution:</strong> Designed to operate safely within a sandboxed environment on your local machine.</li>
+            </ul>
+
+            <h2 style="color: var(--cyan); margin-bottom: 15px;">Access Restrictions</h2>
+            <p>You are currently logged in with a <strong>Guest Access</strong> pass. Guests are permitted to explore the interface, but are restricted from utilizing the Neural Chat, Web Research, and File OS modules.</p>
+          </div>
+        </div>
+      </div>
 
       <!-- ──── DASHBOARD VIEW ──── -->
       <div class="view active" id="view-dashboard">
@@ -442,7 +471,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="./particles.js"></script>
-  <script src="./app.js"></script>
+  <script src="/ui/particles.js"></script>
+  <script src="/ui/app.js"></script>
 </body>
 </html>

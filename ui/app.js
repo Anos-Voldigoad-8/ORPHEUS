@@ -24,7 +24,8 @@
       scanlines: true,
       particles: true,
       reconnect: true
-    }
+    },
+    role: 'guest'
   };
 
   // ── DOM Cache ──
@@ -125,6 +126,10 @@
         if (data.payload.metrics) updateMetrics(data.payload.metrics);
         if (data.payload.agents) updateAgentStatus(data.payload.agents);
         break;
+      case 'auth_info':
+        state.role = data.payload.role;
+        applyRoleRestrictions();
+        break;
       case 'error':
         log('error', data.message || 'Unknown error');
         if (state.particleSystem) {
@@ -147,6 +152,23 @@
     if (label) {
       const labels = { online: 'ONLINE', offline: 'OFFLINE', connecting: 'LINKING...' };
       label.textContent = labels[status] || 'UNKNOWN';
+    }
+  }
+
+  function applyRoleRestrictions() {
+    if (state.role === 'guest') {
+      const navChat = $('#nav-chat');
+      const navFiles = $('#nav-files');
+      if (navChat) navChat.style.display = 'none';
+      if (navFiles) navFiles.style.display = 'none';
+
+      const roleText = $('.user-info__role');
+      if (roleText) roleText.textContent = 'GUEST ACCESS';
+      const nameText = $('.user-info__name');
+      if (nameText) nameText.textContent = 'Visitor';
+
+      // Switch to overview view automatically if guest
+      switchView('overview');
     }
   }
 

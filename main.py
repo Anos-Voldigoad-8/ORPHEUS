@@ -8,7 +8,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 # pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
 # pyrefly: ignore [missing-import]
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 # pyrefly: ignore [missing-import]
 from fastapi.staticfiles import StaticFiles
 # pyrefly: ignore [missing-import]
@@ -22,6 +22,13 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from itsdangerous import URLSafeSerializer
+from pydantic import BaseModel
 
 # System metrics
 try:
@@ -247,6 +254,50 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Rate Limiting
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# Session Security
+SECRET_KEY = os.environ.get("SECRET_KEY", "super-secret-orpheus-key-12345")
+serializer = URLSafeSerializer(SECRET_KEY)
+
+# Auth Middleware
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+    
+    protected_prefixes = ["/app", "/api/"]
+    public_paths = ["/api/login", "/api/guest_login", "/api/metrics"]
+    
+    needs_auth = False
+    for prefix in protected_prefixes:
+        if path.startswith(prefix):
+            needs_auth = True
+            break
+            
+    if path in public_paths:
+        needs_auth = False
+        
+    if needs_auth:
+        session_cookie = request.cookies.get("orpheus_session")
+        if not session_cookie:
+            if path.startswith("/api/"):
+                return JSONResponse({"status": "error", "message": "Unauthorized"}, status_code=401)
+            return RedirectResponse(url="/login")
+        try:
+            data = serializer.loads(session_cookie)
+            request.state.user = data
+        except Exception:
+            if path.startswith("/api/"):
+                return JSONResponse({"status": "error", "message": "Unauthorized - Invalid Session"}, status_code=401)
+            return RedirectResponse(url="/login")
+                
+    response = await call_next(request)
+    return response
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
@@ -295,6 +346,50 @@ async def serve_js(filename: str):
     return HTMLResponse(status_code=404)
 
 
+@app.get("/login", response_class=HTMLResponse)
+async def serve_login():
+    """Serve the login page."""
+    login_file = os.path.join(ui_path, "login.html")
+    if os.path.exists(login_file):
+        return FileResponse(login_file)
+    return HTMLResponse("<h1>Login page not found</h1>", status_code=404)
+
+class LoginRequest(BaseModel):
+    email: str
+
+@app.post("/api/login")
+@limiter.limit("5/15minute")
+async def api_login(request: Request, data: LoginRequest):
+    """Email login endpoint."""
+    email = data.email.strip()
+    if not email or "@" not in email:
+        return JSONResponse({"status": "error", "message": "Invalid email"}, status_code=400)
+    
+    session_data = {"email": email, "role": "user"}
+    token = serializer.dumps(session_data)
+    
+    response = JSONResponse({"status": "success"})
+    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=86400)
+    return response
+
+@app.post("/api/guest_login")
+@limiter.limit("5/15minute")
+async def api_guest_login(request: Request):
+    """Guest login endpoint."""
+    session_data = {"email": "guest@orpheus.net", "role": "guest"}
+    token = serializer.dumps(session_data)
+    
+    response = JSONResponse({"status": "success"})
+    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=86400)
+    return response
+
+@app.post("/api/logout")
+async def api_logout(request: Request):
+    """Logout endpoint."""
+    response = JSONResponse({"status": "success"})
+    response.delete_cookie("orpheus_session")
+    return response
+
 @app.get("/health")
 async def health_check():
     """System health endpoint."""
@@ -336,6 +431,13 @@ async def api_command(request: Request):
     except Exception:
         command = request.query_params.get("command", "")
 
+    user = getattr(request.state, "user", {})
+    if user.get("role") == "guest":
+        return JSONResponse(
+            {"status": "error", "message": "Guest access restricted."},
+            status_code=403
+        )
+
     if not command:
         return JSONResponse(
             {"status": "error", "message": "No command provided."},
@@ -373,7 +475,22 @@ async def api_command(request: Request):
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    session_cookie = websocket.cookies.get("orpheus_session")
+    role = "guest"
+    if session_cookie:
+        try:
+            data = serializer.loads(session_cookie)
+            role = data.get("role", "guest")
+        except Exception:
+            pass
+
     await ws_manager.connect(websocket)
+
+    # Send role info to client
+    await ws_manager.send_to(websocket, {
+        "type": "auth_info",
+        "payload": {"role": role}
+    })
 
     # Send initial status
     await ws_manager.send_to(websocket, {
