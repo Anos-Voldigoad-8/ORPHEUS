@@ -22,7 +22,7 @@
             <div class="nav-links">
                 <a href="#" onclick="document.getElementById('modal-features').style.display='flex'; return false;">FEATURES</a>
                 <a href="#" onclick="document.getElementById('modal-about').style.display='flex'; return false;">ABOUT</a>
-                <a href="#" onclick="document.getElementById('modal-login').style.display='flex'; return false;" class="nav-btn glow-effect">ACCESS MATRIX</a>
+                <a href="/login" class="nav-btn glow-effect">ACCESS MATRIX</a>
             </div>
         </nav>
 
@@ -35,7 +35,7 @@
                     Experience the ultimate neural network orchestrator, seamlessly integrating multi-agent AI, local execution, and futuristic holographics.
                 </p>
                 <div class="cta-group">
-                    <a href="#" onclick="document.getElementById('modal-login').style.display='flex'; return false;" class="hero-btn btn btn-primary glow-effect">INITIALIZE MATRIX <span class="arrow">→</span></a>
+                    <a href="/login" class="hero-btn btn btn-primary glow-effect">INITIALIZE MATRIX <span class="arrow">→</span></a>
                     <a href="https://github.com/Anos-Voldigoad-8" target="_blank" class="btn btn-secondary">VIEW SOURCE</a>
                 </div>
             </div>
@@ -70,34 +70,13 @@
         </div>
     </div>
 
-    <!-- Login Modal -->
-    <div id="modal-login" class="modal">
-        <div class="login-container glassmorphism">
-            <button class="modal-close" onclick="document.getElementById('modal-login').style.display='none'">✕</button>
-            <div class="login-header">
-                <h1>ORPHEUS</h1>
-                <p>SECURE NEURAL LINK ACCESS</p>
-            </div>
-            
-            <form id="login-form">
-                <div class="input-group">
-                    <label>IDENTIFICATION (EMAIL)</label>
-                    <input type="email" id="email" required placeholder="operative@orpheus.net">
-                </div>
-                
-                <button type="submit" class="btn-submit" id="submit-btn">
-                    <span class="btn-text">ESTABLISH LINK 🚀</span>
-                    <span class="loader" id="loader"></span>
-                </button>
-            </form>
-            
-            <div class="divider">
-                <span>OR</span>
-            </div>
-            
-            <button class="btn-guest" id="guest-btn">GUEST ACCESS</button>
+    <!-- Login Modal Removed (now on /login) -->
+    <div id="modal-login" class="modal" style="display: none;"></div>
 
-            <div id="error-message" class="error-message"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="/ui/landing.js"></script>
+</body>
+</html>
         </div>
     </div>
 

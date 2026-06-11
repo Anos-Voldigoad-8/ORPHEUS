@@ -167,10 +167,108 @@
       const nameText = $('.user-info__name');
       if (nameText) nameText.textContent = 'Visitor';
 
+      // Guest can't change profile settings
+      const profileSettingsGroup = $('#profile-settings-group');
+      if (profileSettingsGroup) profileSettingsGroup.style.display = 'none';
+
       // Switch to overview view automatically if guest
       switchView('overview');
     }
   }
+
+  // ── Profile Management ──
+  async function loadProfile() {
+    try {
+      const res = await fetch('/api/profile');
+      if (res.ok) {
+        const profile = await res.json();
+        applyProfile(profile);
+      }
+    } catch (e) {
+      console.error('Failed to load profile', e);
+    }
+  }
+
+  function applyProfile(profile) {
+    state.profile = profile;
+    const nameEl = $('.user-info__name');
+    const avatarEl = $('.user-avatar');
+    
+    if (nameEl) nameEl.textContent = profile.name;
+    
+    if (avatarEl) {
+      const initial = profile.avatar.substring(0, 1).toUpperCase();
+      const animeAvatars = {
+        "Goku": "🐉", "Gohan": "👓", "Vegeta": "💥", "Bulma": "🔧", 
+        "Rangiku": "🌸", "Yoruichi": "🐈‍⬛", "Tsunade": "🐌", "Itachi": "👁️", 
+        "Jiraiya": "🐸", "Naruto": "🦊", "Hinata": "👁️‍🗨️", "Ichigo": "🍓", 
+        "Orihime": "🧚", "Aizen": "🦋", "Luffy": "👒", "Zoro": "⚔️", 
+        "Boa Hancock": "🐍", "Robin": "📖", "Nami": "🍊", "Sanji": "🚬"
+      };
+      if (animeAvatars[profile.avatar]) {
+        avatarEl.textContent = animeAvatars[profile.avatar];
+      } else if (profile.avatar !== 'A') {
+        avatarEl.textContent = initial;
+      } else {
+        avatarEl.textContent = profile.name.substring(0, 1).toUpperCase();
+      }
+    }
+    
+    // Theme
+    if (profile.theme === 'light') {
+      document.body.classList.add('light-theme');
+    } else {
+      document.body.classList.remove('light-theme');
+    }
+
+    // Populate Settings UI
+    
+    document.querySelectorAll('.avatar-option').forEach(el => {
+        el.classList.toggle('selected', el.dataset.avatar === currentAvatarSelection);
+    });
+  }
+
+  async function saveProfile() {
+    const nameInput = $('#setting-profile-name').value;
+    const avatarSelect = currentAvatarSelection;
+    const themeToggle = $('#setting-profile-theme').checked ? 'light' : 'dark';
+
+    btnSaveProfile.disabled = true;
+    btnSaveProfile.textContent = "SAVING...";
+
+    const msgEl = $('#profile-save-message') || document.createElement('div');
+
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: nameInput, avatar: avatarSelect, theme: themeToggle })
+      });
+      if (res.ok) {
+        if(msgEl) {
+            msgEl.textContent = "Profile saved successfully!";
+            msgEl.style.color = "var(--green)";
+        }
+        applyProfile({ name: nameInput, avatar: avatarSelect, theme: themeToggle });
+        loadProfile();
+      } else {
+        const data = await res.json();
+        if(msgEl) {
+            msgEl.textContent = data.message || "Failed to save profile.";
+            msgEl.style.color = "var(--red)";
+        }
+      }
+    } catch (e) {
+      if(msgEl) {
+          msgEl.textContent = "Network error while saving.";
+          msgEl.style.color = "var(--red)";
+      }
+    } finally {
+      btnSaveProfile.disabled = false;
+      btnSaveProfile.textContent = "SAVE PROFILE";
+    }
+  }
+
 
   // ── View Routing ──
   function switchView(viewName) {
@@ -593,6 +691,12 @@
   // ── Initialization ──
   function init() {
     initSettings();
+    loadProfile();
+
+    const btnSaveProfile = $('#btn-save-profile');
+    if (btnSaveProfile) {
+      btnSaveProfile.addEventListener('click', saveProfile);
+    }
 
     // Clock
     updateClock();

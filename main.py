@@ -67,6 +67,39 @@ agent_harness: Optional[AgentHarness] = None
 start_time = time.time()
 
 # ═══════════════════════════════════════════════════════════════
+# Profile Management
+# ═══════════════════════════════════════════════════════════════
+PROFILES_FILE = Path("profiles.json")
+BANNED_WORDS = {"fuck", "shit", "bitch", "ass", "cunt", "dick", "nigger", "faggot", "whore", "slut", "bastard"}
+
+def load_profiles() -> dict:
+    if PROFILES_FILE.exists():
+        try:
+            with open(PROFILES_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading profiles: {e}")
+            return {}
+    return {}
+
+def save_profiles(profiles: dict):
+    try:
+        with open(PROFILES_FILE, "w", encoding="utf-8") as f:
+            json.dump(profiles, f, indent=2)
+    except Exception as e:
+        logger.error(f"Error saving profiles: {e}")
+
+PROFILES = load_profiles()
+
+def contains_profanity(text: str) -> bool:
+    text_lower = text.lower()
+    for word in BANNED_WORDS:
+        if word in text_lower:
+            return True
+    return False
+
+
+# ═══════════════════════════════════════════════════════════════
 # WebSocket Connection Manager
 # ═══════════════════════════════════════════════════════════════
 class ConnectionManager:
@@ -415,11 +448,99 @@ async def api_agents():
     """Get agent status."""
     return get_agent_status()
 
+# ═══════════════════════════════════════════════════════════════
+# User Profile Endpoints
+# ═══════════════════════════════════════════════════════════════
+import json
+
+def get_profiles_db():
+    try:
+        with open("profiles.json", "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_profiles_db(db):
+    with open("profiles.json", "w") as f:
+        json.dump(db, f, indent=4)
+
+@app.get("/api/profile")
+async def api_get_profile(request: Request):
+    user = getattr(request.state, "user", {})
+    email = user.get("email")
+    if not email or user.get("role") == "guest":
+        return JSONResponse({"name": "Guest Operative", "avatar": "A", "theme": "dark"})
+    
+    db = get_profiles_db()
+    profile = db.get(email, {"name": email.split("@")[0], "avatar": "A", "theme": "dark"})
+    return JSONResponse(profile)
+
+class ProfileUpdateRequest(BaseModel):
+    name: str
+    avatar: str
+    theme: str
+
+@app.post("/api/profile")
+async def api_update_profile(request: Request, data: ProfileUpdateRequest):
+    user = getattr(request.state, "user", {})
+    email = user.get("email")
+    if not email or user.get("role") == "guest":
+        return JSONResponse({"status": "error", "message": "Guests cannot update profiles."}, status_code=403)
+        
+    db = get_profiles_db()
+    db[email] = {
+        "name": data.name,
+        "avatar": data.avatar,
+        "theme": data.theme
+    }
+    save_profiles_db(db)
+    return JSONResponse({"status": "success"})
+
 
 @app.get("/api/files")
 async def api_files():
     """List workspace files."""
     return list_workspace_files()
+
+@app.get("/api/profile")
+async def api_get_profile(request: Request):
+    """Get current user profile."""
+    user = getattr(request.state, "user", {})
+    email = user.get("email")
+    if not email or user.get("role") == "guest":
+        return {"name": "Guest Operative", "avatar": "G", "theme": "dark"}
+    
+    profile = PROFILES.get(email, {
+        "name": email.split("@")[0][:15],
+        "avatar": email[0].upper(),
+        "theme": "dark"
+    })
+    return profile
+
+class ProfileUpdateRequest(BaseModel):
+    name: str
+    avatar: str
+    theme: str
+
+@app.post("/api/profile")
+async def api_update_profile(request: Request, data: ProfileUpdateRequest):
+    """Update current user profile."""
+    user = getattr(request.state, "user", {})
+    email = user.get("email")
+    
+    if not email or user.get("role") == "guest":
+        return JSONResponse({"status": "error", "message": "Guest profiles cannot be modified"}, status_code=403)
+        
+    if contains_profanity(data.name):
+        return JSONResponse({"status": "error", "message": "Name contains inappropriate content"}, status_code=400)
+        
+    PROFILES[email] = {
+        "name": data.name[:25],
+        "avatar": data.avatar,
+        "theme": data.theme if data.theme in ["light", "dark"] else "dark"
+    }
+    save_profiles(PROFILES)
+    return {"status": "success"}
 
 
 @app.post("/api/command")

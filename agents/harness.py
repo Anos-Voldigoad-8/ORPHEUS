@@ -409,8 +409,11 @@ class LLMAgent(OrpheusAgent):
                 "model": self.ollama_model,
                 "prompt": f"{self.SYSTEM_PROMPT}\n\nUser: {command}\n\nAssistant:",
                 "stream": False,
+                "options": {
+                    "stop": ["\nUser:", "User:"]
+                }
             },
-            timeout=60,
+            timeout=300,
         )
 
         data = response.json()

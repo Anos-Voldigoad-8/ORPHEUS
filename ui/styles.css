@@ -60,12 +60,6 @@
   /* Transitions */
   --ease-out:       cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
-  --transition-fast: 150ms var(--ease-out);
-  --transition-med:  300ms var(--ease-out);
-  --transition-slow: 500ms var(--ease-out);
-
-  /* Shadows */
-  --shadow-sm:      0 1px 3px rgba(0,0,0,0.4);
   --shadow-md:      0 4px 12px rgba(0,0,0,0.5);
   --shadow-lg:      0 8px 32px rgba(0,0,0,0.6);
   --shadow-glow:    0 0 20px var(--cyan-glow), 0 0 60px rgba(0, 240, 255, 0.1);
@@ -1375,6 +1369,63 @@ body {
 .toast {
   background: var(--bg-glass);
   backdrop-filter: blur(20px);
+}
+
+/* ── Avatar Horizontal Selector ── */
+.avatar-selector {
+  display: flex;
+  overflow-x: auto;
+  gap: 12px;
+  padding: 10px 5px;
+  width: 100%;
+}
+.avatar-selector::-webkit-scrollbar {
+  height: 6px;
+}
+.avatar-selector::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 4px;
+}
+.avatar-option {
+  flex: 0 0 60px;
+  height: 60px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all var(--transition-fast);
+  object-fit: cover;
+}
+.avatar-option.selected {
+  border-color: var(--cyan);
+  box-shadow: 0 0 15px var(--cyan-glow);
+  transform: scale(1.1);
+}
+.avatar-option:hover {
+  transform: scale(1.05);
+}
+
+/* ── 3D Glossy Save Profile Button ── */
+#btn-save-profile {
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--cyan-dim) 100%);
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 15px var(--cyan-glow);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  border-radius: var(--radius-md);
+  color: white;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+#btn-save-profile:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 6px 20px var(--cyan-glow);
+}
+#btn-save-profile:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 5px var(--cyan-glow);
+}
+
+.toast {
   border: 1px solid var(--border-accent);
   border-radius: var(--radius-md);
   padding: 12px 16px;

@@ -112,9 +112,6 @@
                 <li style="margin-bottom: 10px;"><strong>Agentic Automation:</strong> A network of specialized agents capable of coding, file system operations, and internet research.</li>
                 <li style="margin-bottom: 10px;"><strong>Secure Local Execution:</strong> Designed to operate safely within a sandboxed environment on your local machine.</li>
             </ul>
-
-            <h2 style="color: var(--cyan); margin-bottom: 15px;">Access Restrictions</h2>
-            <p>You are currently logged in with a <strong>Guest Access</strong> pass. Guests are permitted to explore the interface, but are restricted from utilizing the Neural Chat, Web Research, and File OS modules.</p>
           </div>
         </div>
       </div>
@@ -401,6 +398,46 @@
           <div class="agents-view__header">
             <h1 class="view-title">SYSTEM SETTINGS</h1>
             <p class="view-subtitle">Configure ORPHEUS behavior and preferences</p>
+          </div>
+
+          <div class="settings-group" id="profile-settings-group">
+            <div class="settings-group__title">👤 User Profile</div>
+            
+            <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+              <div style="width: 100%;">
+                <div class="setting-item__label">Display Name</div>
+                <div class="setting-item__desc">Your operative alias (No insensitive words allowed)</div>
+              </div>
+              <input type="text" id="setting-profile-name" class="chat-input" style="width: 100%; padding: 8px; font-family: var(--font-mono); margin-top: 5px; color: var(--text-primary); background: rgba(0,0,0,0.2);" placeholder="Operative Name">
+            </div>
+
+            <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+              <div style="width: 100%;">
+                <div class="setting-item__label">Neural Avatar</div>
+                <div class="setting-item__desc">Select your visual identifier</div>
+              </div>
+              <div class="avatar-selector" id="avatar-selector-container">
+                <!-- Javascript will populate the avatars here -->
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div>
+                <div class="setting-item__label">Interface Theme</div>
+                <div class="setting-item__desc">Toggle between Dark and Light mode</div>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Dark</span>
+                <label class="toggle">
+                  <input type="checkbox" id="setting-profile-theme">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Light</span>
+              </div>
+            </div>
+
+            <button id="btn-save-profile" class="btn-send" style="width: 100%; margin-top: 10px; padding: 10px; text-align: center; justify-content: center;">SAVE PROFILE</button>
+            <div id="profile-save-message" style="margin-top: 10px; font-size: 0.85rem; text-align: center;"></div>
           </div>
 
           <div class="settings-group">

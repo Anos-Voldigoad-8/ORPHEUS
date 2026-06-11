@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORPHEUS — Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/ui/landing.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>">
+    <style>
+        .modal { display: flex !important; background: transparent !important; }
+        .login-container { border: 1px solid var(--cyan); box-shadow: 0 0 30px var(--cyan-glow); z-index: 100; }
+        .hero, .navbar { display: none; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div class="overlay">
+        <div id="modal-login" class="modal">
+            <div class="login-container glassmorphism">
+                <a href="/" class="modal-close" style="text-decoration:none;">✕</a>
+                <div class="login-header">
+                    <h1>ORPHEUS</h1>
+                    <p>SECURE NEURAL LINK ACCESS</p>
+                </div>
+                
+                <form id="login-form">
+                    <div class="input-group">
+                        <label>IDENTIFICATION (EMAIL)</label>
+                        <input type="email" id="email" required placeholder="operative@orpheus.net">
+                    </div>
+                    
+                    <button type="submit" class="btn-submit" id="submit-btn">
+                        <span class="btn-text">ESTABLISH LINK 🚀</span>
+                        <span class="loader" id="loader"></span>
+                    </button>
+                </form>
+                
+                <div class="divider">
+                    <span>OR</span>
+                </div>
+                
+                <button class="btn-guest" id="guest-btn">GUEST ACCESS</button>
+
+                <div id="error-message" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="/ui/landing.js"></script>
+</body>
+</html>
