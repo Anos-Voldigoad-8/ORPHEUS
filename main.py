@@ -269,18 +269,7 @@ async def serve_root():
     landing_file = os.path.join(ui_path, "landing.html")
     if os.path.exists(landing_file):
         return FileResponse(landing_file)
-    return HTMLResponse(
-        "<h1>Landing page not found</h1><p>Place landing.html in the ui/ directory.</p>",
-        status_code=404
-    )
-
-
-@app.get("/app", response_class=HTMLResponse)
-async def serve_app():
-    """Serve the main ORPHEUS dashboard."""
-    index_file = os.path.join(ui_path, "index.html")
-    if os.path.exists(index_file):
-        return FileResponse(index_file)
+    return HTMLResponse("<h1>Landing page not found</h1>", status_code=404)
     return HTMLResponse(
         "<h1>ORPHEUS UI not found</h1><p>Place index.html in the ui/ directory.</p>",
         status_code=404
@@ -484,8 +473,8 @@ async def websocket_endpoint(websocket: WebSocket):
 # ═══════════════════════════════════════════════════════════════
 # Static Files (mounted AFTER routes for priority)
 # ═══════════════════════════════════════════════════════════════
-if os.path.exists(ui_path):
-    app.mount("/ui", StaticFiles(directory=ui_path), name="ui_static")
+if os.path.exists(ui_path):    # Serve static assets from the root so relative paths work
+    app.mount("/", StaticFiles(directory=ui_path, html=True), name="ui_static")
 else:
     logger.warning("UI directory not found. GUI will be unavailable.")
 
