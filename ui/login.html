@@ -17,40 +17,71 @@
     <div id="canvas-container"></div>
     <div class="overlay">
         <div id="modal-login" class="modal">
-            <div class="login-container glassmorphism">
-                <a href="/" class="modal-close" style="text-decoration:none;">✕</a>
-                <div class="login-header">
-                    <h1>ORPHEUS</h1>
-                    <p>SECURE NEURAL LINK ACCESS</p>
-                </div>
+            <div class="login-container glassmorphism" style="max-width: 450px !important; position: relative; padding-bottom: 30px;">
+                <a href="/" class="modal-close" style="text-decoration:none; position: absolute; right: 20px; top: 20px;">✕</a>
                 
-                <form id="login-form">
-                    <div class="input-group">
-                        <label>IDENTIFICATION (EMAIL)</label>
-                        <input type="email" id="email" required placeholder="email@example.com">
+                <!-- LOGIN VIEW -->
+                <div id="login-view">
+                    <div class="login-header">
+                        <h2>LOG IN</h2>
+                        <p>EXISTING OPERATIVE</p>
                     </div>
-                    <div class="input-group" style="margin-top: 15px;">
-                        <label>SECURITY KEY (PASSWORD)</label>
-                        <input type="password" id="password" required placeholder="••••••••">
-                    </div>
+                    <form id="login-form">
+                        <div class="input-group">
+                            <label>IDENTIFICATION (EMAIL)</label>
+                            <input type="email" id="login-email" required placeholder="email@example.com">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label>SECURITY KEY (PASSWORD)</label>
+                            <input type="password" id="login-password" required placeholder="••••••••">
+                        </div>
+                        <button type="submit" class="btn-submit" id="login-submit-btn" style="margin-top: 25px;">
+                            <span class="btn-text">ESTABLISH LINK 🚀</span>
+                            <span class="loader" id="login-loader"></span>
+                        </button>
+                    </form>
                     
-                    <button type="submit" class="btn-submit" id="submit-btn" style="margin-top: 25px;">
-                        <span class="btn-text">ESTABLISH LINK 🚀</span>
-                        <span class="loader" id="loader"></span>
-                    </button>
-                    
-                    <div style="margin-top: 15px; text-align: center; font-size: 0.85rem;">
-                        <a href="#" id="toggle-auth-mode" style="color: var(--cyan); text-decoration: none;">New operative? Request Security Clearance (Sign Up)</a>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">
+                            New here? <a href="#" id="toggle-to-signup" style="color: var(--cyan); text-decoration: none; font-weight: 600; text-shadow: 0 0 10px var(--cyan-glow);">Sign up</a>
+                        </p>
                     </div>
-                </form>
-                
-                <div class="divider">
-                    <span>OR</span>
-                </div>
-                
-                <button class="btn-guest" id="guest-btn">GUEST ACCESS</button>
 
-                <div id="error-message" class="error-message"></div>
+                    <div class="divider" style="margin-top: 20px; margin-bottom: 20px;">
+                        <span>OR</span>
+                    </div>
+                    <button class="btn-guest" id="guest-btn">GUEST ACCESS</button>
+                </div>
+
+                <!-- SIGNUP VIEW -->
+                <div id="signup-view" style="display: none; animation: fadeIn 0.4s ease-out;">
+                    <div class="login-header">
+                        <h2 style="color: var(--purple); text-shadow: 0 0 15px var(--purple-glow);">SIGN UP</h2>
+                        <p>NEW OPERATIVE</p>
+                    </div>
+                    <form id="signup-form">
+                        <div class="input-group">
+                            <label>IDENTIFICATION (EMAIL)</label>
+                            <input type="email" id="signup-email" required placeholder="email@example.com">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label>SECURITY KEY (PASSWORD)</label>
+                            <input type="password" id="signup-password" required placeholder="••••••••">
+                        </div>
+                        <button type="submit" class="btn-submit" id="signup-submit-btn" style="margin-top: 25px; background: rgba(139, 92, 246, 0.2); border-color: var(--purple); box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);">
+                            <span class="btn-text">REQUEST CLEARANCE 📡</span>
+                            <span class="loader" id="signup-loader"></span>
+                        </button>
+                    </form>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">
+                            Already an operative? <a href="#" id="toggle-to-login" style="color: var(--purple); text-decoration: none; font-weight: 600; text-shadow: 0 0 10px var(--purple-glow);">Log in</a>
+                        </p>
+                    </div>
+                </div>
+
+                <div id="error-message" class="error-message" style="text-align: center; margin-top: 10px;"></div>
             </div>
         </div>
     </div>

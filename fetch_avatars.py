@@ -9,7 +9,8 @@ os.makedirs('ui/assets/avatars', exist_ok=True)
 
 print("Starting avatar download...")
 for name in avatars:
-    url = f'https://api.jikan.moe/v4/characters?q={name.replace(" ", "%20")}&limit=1'
+    query_name = name.replace(" ", "%20")
+    url = f'https://api.jikan.moe/v4/characters?q={query_name}&limit=1&order_by=favorites&sort=desc'
     filepath = f'ui/assets/avatars/{name.replace(" ", "_")}.jpg'
     
     if os.path.exists(filepath):

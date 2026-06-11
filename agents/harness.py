@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 # Sandbox Configuration
 ###############################################################################
  
+WORKSPACE_DIR_FALLBACK = Path(os.getenv("WORKSPACE_DIR", "workspace")).resolve()
 WORKSPACE_DIR = Path(os.getenv('WORKSPACE_DIR', 'workspace')).resolve()
 WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
 ALLOWED_EXTENSIONS = {'.py', '.txt', '.json', '.md', '.csv', '.log', '.pdf', '.html'}
@@ -83,8 +84,17 @@ class CommanderAgent(OrpheusAgent):
  
 class FileOSAgent(OrpheusAgent):
     """Handles secure access to the designated local directory."""
-    def __init__(self):
+    def __init__(self, workspace_dir: Path):
         super().__init__("FileOS", "File & OS Operations Agent")
+        self.workspace_dir = workspace_dir
+
+    def _sanitize_path(self, target_path: str) -> Path:
+        """Ensure the path stays within the user's isolated workspace."""
+        base = self.workspace_dir.resolve()
+        target = (base / target_path).resolve()
+        if not str(target).startswith(str(base)):
+            raise PermissionError("Path traversal detected! Operation denied.")
+        return target
  
     def process(self, action: str, file_path: str, content: str = None) -> str:
         logger.info(f"FileOSAgent executing '{action}' on '{file_path}'")
@@ -103,7 +113,7 @@ class FileOSAgent(OrpheusAgent):
  
     def _write_file(self, file_path: str, content: str) -> str:
         try:
-            target = _sanitize_path(file_path)
+            target = self._sanitize_path(file_path)
             target.parent.mkdir(parents=True, exist_ok=True)
             with open(target, 'w', encoding='utf-8') as f:
                 f.write(content)
@@ -113,7 +123,7 @@ class FileOSAgent(OrpheusAgent):
  
     def _read_file(self, file_path: str) -> str:
         try:
-            target = _sanitize_path(file_path)
+            target = self._sanitize_path(file_path)
             with open(target, 'r', encoding='utf-8') as f:
                 return f.read()
         except Exception as e:
@@ -121,7 +131,7 @@ class FileOSAgent(OrpheusAgent):
  
     def _list_files(self, directory: str = ".") -> str:
         try:
-            target = _sanitize_path(directory)
+            target = self._sanitize_path(directory)
             files = os.listdir(target)
             return "\n".join(files)
         except Exception as e:
@@ -129,7 +139,7 @@ class FileOSAgent(OrpheusAgent):
  
     def _delete_file(self, file_path: str) -> str:
         try:
-            target = _sanitize_path(file_path)
+            target = self._sanitize_path(file_path)
             if target.is_dir():
                 return "Error: Deleting directories is not allowed for safety."
             os.remove(target)
@@ -139,14 +149,14 @@ class FileOSAgent(OrpheusAgent):
  
     def _execute_file(self, file_path: str) -> str:
         try:
-            target = _sanitize_path(file_path)
+            target = self._sanitize_path(file_path)
             if target.suffix != '.py':
                 return "Error: Only .py files can be executed."
             result = subprocess.run(
                 ['python', str(target)],
                 capture_output=True,
                 text=True,
-                cwd=str(WORKSPACE_DIR),
+                cwd=str(self.workspace_dir),
                 timeout=10
             )
             return f"Exit Code: {result.returncode}\nOutput:\n{result.stdout}\nErrors:\n{result.stderr}"
@@ -184,9 +194,10 @@ class WebResearchAgent(OrpheusAgent):
  
 class CreatorAgent(OrpheusAgent):
     """Generates structured payloads like JSON, documents, and code."""
-    def __init__(self, llm_agent=None):
+    def __init__(self, llm_agent=None, file_agent=None):
         super().__init__("Creator", "Content Creation Agent")
         self.llm_agent = llm_agent
+        self.file_agent = file_agent
 
     def process(self, request: str, payload_type: str = "generic") -> str:
         logger.info(f"CreatorAgent generating '{payload_type}' content.")
@@ -217,7 +228,8 @@ class CreatorAgent(OrpheusAgent):
         if not filename or " " in filename:
             filename = "generated_output.txt"
             
-        FileOSAgent()._write_file(filename, content)
+        if self.file_agent:
+            self.file_agent._write_file(filename, content)
         return f"Successfully generated content and saved to {filename} in your workspace.\n\nPreview:\n```\n{content[:200]}...\n```"
  
  
@@ -425,12 +437,19 @@ class LLMAgent(OrpheusAgent):
 ###############################################################################
  
 class AgentHarness:
-    def __init__(self):
+    def __init__(self, user_email: str = "guest"):
+        self.user_email = user_email
+        if user_email == "guest":
+            self.workspace_dir = WORKSPACE_DIR_FALLBACK
+        else:
+            self.workspace_dir = Path(f"data/{user_email}/workspace")
+        self.workspace_dir.mkdir(parents=True, exist_ok=True)
+            
         self.commander = CommanderAgent()
-        self.file_agent = FileOSAgent()
+        self.file_agent = FileOSAgent(self.workspace_dir)
         self.web_agent = WebResearchAgent()
         self.llm_agent = LLMAgent()
-        self.creator_agent = CreatorAgent(self.llm_agent)
+        self.creator_agent = CreatorAgent(self.llm_agent, self.file_agent)
         self.agents = {
             "file_os": self.file_agent,
             "web_research": self.web_agent,

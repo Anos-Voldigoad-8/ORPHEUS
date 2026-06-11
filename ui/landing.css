@@ -24,7 +24,8 @@ body {
     background-color: var(--bg-void);
     color: var(--text-primary);
     font-family: var(--font-body);
-    overflow: hidden; /* No scroll, full screen */
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 /* Three.js Canvas Container */
@@ -43,7 +44,8 @@ body {
     z-index: 10;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    min-height: 100vh;
+    height: auto;
     width: 100vw;
     pointer-events: none; /* Let clicks pass through except on interactive elements */
 }
@@ -336,8 +338,10 @@ body {
 }
 
 .input-group input:focus {
-    border-color: #00F0FF;
-    box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+    outline: none;
+    border-color: var(--cyan);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+    background: rgba(17, 24, 39, 0.8);
 }
 
 .btn-submit {
@@ -439,4 +443,69 @@ body {
 @keyframes rotation {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Modals */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(3, 7, 18, 0.8);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 32px;
+    max-width: 600px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    animation: scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: var(--cyan);
+}
+
+.modal-title {
+    font-family: var(--font-display);
+    color: var(--cyan);
+    margin-bottom: 20px;
+}
+
+.feature-list {
+    list-style: none;
+    color: var(--text-muted);
+    line-height: 1.8;
+}
+
+.feature-list li {
+    margin-bottom: 12px;
+}
+
+.feature-list strong {
+    color: var(--text-primary);
+}
+
+@keyframes scaleUp {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
 }

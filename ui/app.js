@@ -269,9 +269,12 @@
     const nameInput = $('#setting-profile-name').value;
     const avatarSelect = currentAvatarSelection;
     const themeToggle = $('#setting-profile-theme').checked ? 'light' : 'dark';
-
-    btnSaveProfile.disabled = true;
-    btnSaveProfile.textContent = "SAVING...";
+    
+    const btnSaveProfile = $('#btn-save-profile');
+    if (btnSaveProfile) {
+        btnSaveProfile.disabled = true;
+        btnSaveProfile.textContent = "SAVING...";
+    }
 
     const msgEl = $('#profile-save-message') || document.createElement('div');
 
@@ -301,8 +304,10 @@
           msgEl.style.color = "var(--red)";
       }
     } finally {
-      btnSaveProfile.disabled = false;
-      btnSaveProfile.textContent = "SAVE PROFILE";
+      if (btnSaveProfile) {
+          btnSaveProfile.disabled = false;
+          btnSaveProfile.textContent = "SAVE PROFILE";
+      }
     }
   }
 
@@ -797,6 +802,12 @@
     const voiceBtn = $('.btn-voice');
     if (voiceBtn) {
       voiceBtn.addEventListener('click', toggleVoice);
+    }
+    
+    // Save Profile button
+    const btnSaveProfileElement = $('#btn-save-profile');
+    if (btnSaveProfileElement) {
+        btnSaveProfileElement.addEventListener('click', saveProfile);
     }
 
     // Particle System

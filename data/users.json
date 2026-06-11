@@ -1,0 +1,14 @@
+{
+    "lakshyasrivastava811@gmail.com": {
+        "password_hash": "$2b$12$VbFpsaZHnR3.QqxUs1wcNO4f1WitoCnavrLGfR4B3YNP5caLjNVwC",
+        "role": "admin"
+    },
+    "test_operative_random_12345@gmail.com": {
+        "password_hash": "$2b$12$1evJoTw8tB1o.t4Jl.v5seVicsyNb8JVKGrKrU6ThRFMBfuhsKDJ.",
+        "role": "user"
+    },
+    "brand_new_operative@gmail.com": {
+        "password_hash": "$2b$12$KQpoIW5JLsVrHf2/3Zrby.sTQ/Dqh69jduwFP.tI8izjM5awA5lRa",
+        "role": "user"
+    }
+}

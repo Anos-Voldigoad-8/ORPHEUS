@@ -205,40 +205,50 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
     const guestBtn = document.getElementById('guest-btn');
-    const submitBtn = document.getElementById('submit-btn');
-    const btnText = document.querySelector('.btn-text');
-    const loader = document.getElementById('loader');
+    const loginSubmitBtn = document.getElementById('login-submit-btn');
+    const signupSubmitBtn = document.getElementById('signup-submit-btn');
+    const loginBtnText = loginSubmitBtn ? loginSubmitBtn.querySelector('.btn-text') : null;
+    const signupBtnText = signupSubmitBtn ? signupSubmitBtn.querySelector('.btn-text') : null;
+    const loginLoader = document.getElementById('login-loader');
+    const signupLoader = document.getElementById('signup-loader');
     const errorMessage = document.getElementById('error-message');
-    const toggleAuthMode = document.getElementById('toggle-auth-mode');
-    
-    let isLoginMode = true;
 
-    if (toggleAuthMode) {
-        toggleAuthMode.addEventListener('click', (e) => {
+    // UI Toggle Logic
+    const toggleToSignup = document.getElementById('toggle-to-signup');
+    const toggleToLogin = document.getElementById('toggle-to-login');
+    const loginView = document.getElementById('login-view');
+    const signupView = document.getElementById('signup-view');
+
+    if (toggleToSignup && toggleToLogin && loginView && signupView) {
+        toggleToSignup.addEventListener('click', (e) => {
             e.preventDefault();
-            isLoginMode = !isLoginMode;
-            if (isLoginMode) {
-                btnText.textContent = "ESTABLISH LINK 🚀";
-                toggleAuthMode.textContent = "New operative? Request Security Clearance (Sign Up)";
-            } else {
-                btnText.textContent = "REQUEST CLEARANCE 📡";
-                toggleAuthMode.textContent = "Already have clearance? Establish Link (Log In)";
-            }
+            loginView.style.display = 'none';
+            signupView.style.display = 'block';
+            if (errorMessage) errorMessage.textContent = '';
+        });
+        
+        toggleToLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            signupView.style.display = 'none';
+            loginView.style.display = 'block';
+            if (errorMessage) errorMessage.textContent = '';
         });
     }
-
-    function setLoading(isLoading) {
-        if(isLoading) {
-            submitBtn.disabled = true;
-            btnText.style.display = 'none';
-            loader.style.display = 'inline-block';
-            guestBtn.disabled = true;
+    function setLoading(isLoading, formType) {
+        guestBtn.disabled = isLoading;
+        if (formType === 'login') {
+            loginSubmitBtn.disabled = isLoading;
+            loginBtnText.style.display = isLoading ? 'none' : 'inline-block';
+            loginLoader.style.display = isLoading ? 'inline-block' : 'none';
+        } else if (formType === 'signup') {
+            signupSubmitBtn.disabled = isLoading;
+            signupBtnText.style.display = isLoading ? 'none' : 'inline-block';
+            signupLoader.style.display = isLoading ? 'inline-block' : 'none';
         } else {
-            submitBtn.disabled = false;
-            btnText.style.display = 'inline-block';
-            loader.style.display = 'none';
-            guestBtn.disabled = false;
+            loginSubmitBtn.disabled = isLoading;
+            signupSubmitBtn.disabled = isLoading;
         }
     }
 
@@ -247,16 +257,13 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => errorMessage.textContent = '', 5000);
     }
 
-    // Email/Password Auth
-    loginForm.addEventListener('submit', async (e) => {
+    async function handleAuth(e, endpoint, formType) {
         e.preventDefault();
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password') ? document.getElementById('password').value : '';
+        const email = document.getElementById(`${formType}-email`).value;
+        const password = document.getElementById(`${formType}-password`).value;
         
-        setLoading(true);
+        setLoading(true, formType);
         errorMessage.textContent = '';
-
-        const endpoint = isLoginMode ? '/api/login' : '/api/signup';
 
         try {
             const response = await fetch(endpoint, {
@@ -266,7 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if(response.ok) {
-                // Success! Redirect to app
                 window.location.href = '/app';
             } else if (response.status === 429) {
                 showError("RATE LIMIT EXCEEDED: MAXIMUM ATTEMPTS REACHED. PLEASE WAIT 15 MINUTES.");
@@ -277,33 +283,43 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             showError('Network error. Unable to establish connection to ORPHEUS core.');
         } finally {
-            setLoading(false);
+            setLoading(false, formType);
         }
-    });
+    }
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => handleAuth(e, '/api/login', 'login'));
+    }
+    
+    if (signupForm) {
+        signupForm.addEventListener('submit', (e) => handleAuth(e, '/api/signup', 'signup'));
+    }
 
     // Guest Login
-    guestBtn.addEventListener('click', async () => {
-        setLoading(true);
-        errorMessage.textContent = '';
+    if (guestBtn) {
+        guestBtn.addEventListener('click', async () => {
+            setLoading(true, 'guest');
+            errorMessage.textContent = '';
 
-        try {
-            const response = await fetch('/api/guest_login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
+            try {
+                const response = await fetch('/api/guest_login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
 
-            if(response.ok) {
-                // Success! Redirect to app
-                window.location.href = '/app';
-            } else if (response.status === 429) {
-                showError("RATE LIMIT EXCEEDED: MAXIMUM ATTEMPTS REACHED. PLEASE WAIT 15 MINUTES.");
-            } else {
-                showError('Guest access denied.');
+                if(response.ok) {
+                    // Success! Redirect to app
+                    window.location.href = '/app';
+                } else if (response.status === 429) {
+                    showError("RATE LIMIT EXCEEDED: MAXIMUM ATTEMPTS REACHED. PLEASE WAIT 15 MINUTES.");
+                } else {
+                    showError('Guest access denied.');
+                }
+            } catch (err) {
+                showError('Network error. Unable to establish connection to ORPHEUS core.');
+            } finally {
+                setLoading(false, 'guest');
             }
-        } catch (err) {
-            showError('Network error. Unable to establish connection to ORPHEUS core.');
-        } finally {
-            setLoading(false);
-        }
-    });
+        });
+    }
 });

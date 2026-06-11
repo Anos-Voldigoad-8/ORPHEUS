@@ -25,7 +25,10 @@ def main_cli():
     
     # Check for master password (simulated environment variable for setupexample)
     # In a real scenario, the user would provide this via secure input.
-    master_password = "local_master_key_for_orpheus"
+    master_password = os.environ.get("ORPHEUS_MASTER_KEY")
+    if not master_password:
+        logger.error("ORPHEUS_MASTER_KEY missing from environment variables!")
+        sys.exit(1)
     
     # 1. Enrollment
     print("\n>> STEP 1: INITIAL SECURITY SETUP")

@@ -23,12 +23,9 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 from itsdangerous import URLSafeSerializer
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+import sys
 
 # System metrics
 try:
@@ -63,13 +60,14 @@ logger = logging.getLogger("orpheus_main")
 # ═══════════════════════════════════════════════════════════════
 # Global State
 # ═══════════════════════════════════════════════════════════════
-agent_harness: Optional[AgentHarness] = None
+from typing import Dict, Any
+user_harnesses: Dict[str, Any] = {}
 start_time = time.time()
 
 # ═══════════════════════════════════════════════════════════════
 # Profile Management
 # ═══════════════════════════════════════════════════════════════
-PROFILES_FILE = Path("profiles.json")
+PROFILES_FILE = Path("data/profiles.json")
 BANNED_WORDS = {"fuck", "shit", "bitch", "ass", "cunt", "dick", "nigger", "faggot", "whore", "slut", "bastard"}
 
 def load_profiles() -> dict:
@@ -204,12 +202,17 @@ def get_agent_status() -> dict:
     }
 
 
-def list_workspace_files() -> list:
-    """List files in the workspace directory."""
+def list_workspace_files(email: str = "guest") -> list:
+    """List files in the user's isolated workspace directory."""
     try:
-        WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
+        if email == "guest":
+            ws_dir = WORKSPACE_DIR
+        else:
+            ws_dir = Path(f"data/{email}/workspace")
+            
+        ws_dir.mkdir(parents=True, exist_ok=True)
         files = []
-        for item in sorted(WORKSPACE_DIR.iterdir()):
+        for item in sorted(ws_dir.iterdir()):
             info = {"name": item.name, "is_dir": item.is_dir()}
             if item.is_file():
                 size = item.stat().st_size
@@ -250,7 +253,6 @@ async def metrics_broadcaster():
 # ═══════════════════════════════════════════════════════════════
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global agent_harness
 
     logger.info("╔═══════════════════════════════════════════╗")
     logger.info("║  ORPHEUS — Omni-Responsive Processing     ║")
@@ -258,8 +260,7 @@ async def lifespan(app: FastAPI):
     logger.info("╚═══════════════════════════════════════════╝")
 
     if CORE_AVAILABLE:
-        agent_harness = AgentHarness()
-        logger.info("✅ Agent Harness initialized.")
+        logger.info("✅ Agent Harness module loaded.")
     else:
         logger.warning("⚠️ Core components not available. Running in degraded mode.")
 
@@ -287,15 +288,30 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Rate Limiting
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(SlowAPIMiddleware)
+# Rate Limiting removed to simplify dependencies
 
 # Session Security
-SECRET_KEY = os.environ.get("SECRET_KEY", "super-secret-orpheus-key-12345")
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    logging.critical("SECRET_KEY missing in .env! Terminating to prevent insecure sessions.")
+    sys.exit(1)
 serializer = URLSafeSerializer(SECRET_KEY)
+
+# Rate Limiting (In-Memory Token Bucket)
+RATE_LIMIT_WINDOW = 900 # 15 minutes
+MAX_ATTEMPTS = 5
+auth_attempts = {} # { ip: [timestamp1, timestamp2] }
+
+def check_rate_limit(request: Request):
+    ip = request.client.host
+    now = time.time()
+    attempts = auth_attempts.get(ip, [])
+    attempts = [t for t in attempts if now - t < RATE_LIMIT_WINDOW]
+    if len(attempts) >= MAX_ATTEMPTS:
+        return False
+    attempts.append(now)
+    auth_attempts[ip] = attempts
+    return True
 
 # Auth Middleware
 @app.middleware("http")
@@ -385,31 +401,29 @@ async def serve_login():
     login_file = os.path.join(ui_path, "login.html")
     if os.path.exists(login_file):
         return FileResponse(login_file)
-    return HTMLResponse("<h1>Login page not found</h1>", status_code=404)
-
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
 
 def get_users_db():
     try:
-        with open("users.json", "r") as f:
+        with open("data/users.json", "r") as f:
             return json.load(f)
     except:
         return {}
 
 def save_users_db(db):
-    with open("users.json", "w") as f:
+    os.makedirs("data", exist_ok=True)
+    with open("data/users.json", "w") as f:
         json.dump(db, f, indent=4)
 
 class AuthRequest(BaseModel):
-    email: str
-    password: str
-
+    email: str = Field(..., max_length=100)
+    password: str = Field(..., min_length=6, max_length=128)
 @app.post("/api/signup")
-@limiter.limit("5/15minute")
 async def api_signup(request: Request, data: AuthRequest):
     """Email/Password signup endpoint."""
+    if not check_rate_limit(request):
+        return JSONResponse({"status": "error", "message": "Too many requests. Please try again in 15 minutes."}, status_code=429)
+        
     email = data.email.strip().lower()
     password = data.password
     
@@ -425,8 +439,12 @@ async def api_signup(request: Request, data: AuthRequest):
     # Assign role
     role = "admin" if email == "lakshyasrivastava811@gmail.com" else "user"
     
+    # Generate bcrypt hash (lower rounds to 8 for speed)
+    salt = bcrypt.gensalt(rounds=8)
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+    
     db[email] = {
-        "password_hash": pwd_context.hash(password),
+        "password_hash": hashed,
         "role": role
     }
     save_users_db(db)
@@ -439,9 +457,11 @@ async def api_signup(request: Request, data: AuthRequest):
     return response
 
 @app.post("/api/login")
-@limiter.limit("5/15minute")
 async def api_login(request: Request, data: AuthRequest):
     """Email/Password login endpoint."""
+    if not check_rate_limit(request):
+        return JSONResponse({"status": "error", "message": "Too many requests. Please try again in 15 minutes."}, status_code=429)
+        
     email = data.email.strip().lower()
     password = data.password
     
@@ -451,7 +471,12 @@ async def api_login(request: Request, data: AuthRequest):
     db = get_users_db()
     user_data = db.get(email)
     
-    if not user_data or not pwd_context.verify(password, user_data["password_hash"]):
+    if not user_data:
+        return JSONResponse({"status": "error", "message": "Invalid email or password"}, status_code=401)
+        
+    # Verify bcrypt hash
+    stored_hash = user_data["password_hash"].encode('utf-8')
+    if not bcrypt.checkpw(password.encode('utf-8'), stored_hash):
         return JSONResponse({"status": "error", "message": "Invalid email or password"}, status_code=401)
     
     # Check if admin email but somehow not admin (fix old records)
@@ -467,7 +492,6 @@ async def api_login(request: Request, data: AuthRequest):
     return response
 
 @app.post("/api/guest_login")
-@limiter.limit("5/15minute")
 async def api_guest_login(request: Request):
     """Guest login endpoint."""
     session_data = {"email": "guest@orpheus.net", "role": "guest"}
@@ -512,18 +536,12 @@ async def api_agents():
 # ═══════════════════════════════════════════════════════════════
 # User Profile Endpoints
 # ═══════════════════════════════════════════════════════════════
-import json
-
-def get_profiles_db():
-    try:
-        with open("profiles.json", "r") as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_profiles_db(db):
-    with open("profiles.json", "w") as f:
-        json.dump(db, f, indent=4)
+@app.get("/api/files")
+async def api_files(request: Request):
+    """List workspace files."""
+    user = getattr(request.state, "user", {})
+    email = user.get("email", "guest")
+    return list_workspace_files(email)
 
 @app.get("/api/profile")
 async def api_get_profile(request: Request):
@@ -532,30 +550,8 @@ async def api_get_profile(request: Request):
     if not email or user.get("role") == "guest":
         return JSONResponse({"name": "Guest Operative", "avatar": "A", "theme": "dark"})
     
-    db = get_profiles_db()
-    profile = db.get(email, {"name": email.split("@")[0], "avatar": "A", "theme": "dark"})
+    profile = PROFILES.get(email, {"name": email.split("@")[0], "avatar": "A", "theme": "dark"})
     return JSONResponse(profile)
-
-class ProfileUpdateRequest(BaseModel):
-    name: str
-    avatar: str
-    theme: str
-
-@app.post("/api/profile")
-async def api_update_profile(request: Request, data: ProfileUpdateRequest):
-    user = getattr(request.state, "user", {})
-    email = user.get("email")
-    if not email or user.get("role") == "guest":
-        return JSONResponse({"status": "error", "message": "Guests cannot update profiles."}, status_code=403)
-        
-    db = get_profiles_db()
-    db[email] = {
-        "name": data.name,
-        "avatar": data.avatar,
-        "theme": data.theme
-    }
-    save_profiles_db(db)
-    return JSONResponse({"status": "success"})
 
 
 @app.get("/api/files")
@@ -563,25 +559,10 @@ async def api_files():
     """List workspace files."""
     return list_workspace_files()
 
-@app.get("/api/profile")
-async def api_get_profile(request: Request):
-    """Get current user profile."""
-    user = getattr(request.state, "user", {})
-    email = user.get("email")
-    if not email or user.get("role") == "guest":
-        return {"name": "Guest Operative", "avatar": "G", "theme": "dark"}
-    
-    profile = PROFILES.get(email, {
-        "name": email.split("@")[0][:15],
-        "avatar": email[0].upper(),
-        "theme": "dark"
-    })
-    return profile
-
 class ProfileUpdateRequest(BaseModel):
-    name: str
-    avatar: str
-    theme: str
+    name: str = Field(..., max_length=50)
+    avatar: str = Field(..., max_length=100)
+    theme: str = Field(..., max_length=50)
 
 @app.post("/api/profile")
 async def api_update_profile(request: Request, data: ProfileUpdateRequest):
@@ -626,14 +607,19 @@ async def api_command(request: Request):
             status_code=400
         )
 
-    if not agent_harness:
+    if not CORE_AVAILABLE:
         return JSONResponse(
             {"status": "error", "message": "Agent Harness not initialized."},
             status_code=503
         )
 
+    email = user.get("email", "guest")
+    if email not in user_harnesses:
+        user_harnesses[email] = AgentHarness(user_email=email)
+    harness = user_harnesses[email]
+
     try:
-        result = agent_harness.execute_command(command)
+        result = harness.execute_command(command)
         await ws_manager.broadcast({
             "type": "activity",
             "payload": {
@@ -659,10 +645,12 @@ async def api_command(request: Request):
 async def websocket_endpoint(websocket: WebSocket):
     session_cookie = websocket.cookies.get("orpheus_session")
     role = "guest"
+    email = "guest"
     if session_cookie:
         try:
             data = serializer.loads(session_cookie)
             role = data.get("role", "guest")
+            email = data.get("email", "guest")
         except Exception:
             pass
 
@@ -728,11 +716,15 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
 
                 # Execute command
-                if agent_harness:
+                if CORE_AVAILABLE:
+                    if email not in user_harnesses:
+                        user_harnesses[email] = AgentHarness(user_email=email)
+                    harness = user_harnesses[email]
+                    
                     try:
                         # Run in thread to avoid blocking
                         result = await asyncio.get_event_loop().run_in_executor(
-                            None, agent_harness.execute_command, command
+                            None, harness.execute_command, command
                         )
                     except Exception as e:
                         result = f"Error: {str(e)}"
@@ -772,7 +764,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 })
 
             elif msg_type == "list_files":
-                files = list_workspace_files()
+                files = list_workspace_files(email)
                 await ws_manager.send_to(websocket, {
                     "type": "file_list",
                     "payload": files
