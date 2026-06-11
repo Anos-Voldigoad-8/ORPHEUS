@@ -210,6 +210,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnText = document.querySelector('.btn-text');
     const loader = document.getElementById('loader');
     const errorMessage = document.getElementById('error-message');
+    const toggleAuthMode = document.getElementById('toggle-auth-mode');
+    
+    let isLoginMode = true;
+
+    if (toggleAuthMode) {
+        toggleAuthMode.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLoginMode = !isLoginMode;
+            if (isLoginMode) {
+                btnText.textContent = "ESTABLISH LINK 🚀";
+                toggleAuthMode.textContent = "New operative? Request Security Clearance (Sign Up)";
+            } else {
+                btnText.textContent = "REQUEST CLEARANCE 📡";
+                toggleAuthMode.textContent = "Already have clearance? Establish Link (Log In)";
+            }
+        });
+    }
 
     function setLoading(isLoading) {
         if(isLoading) {
@@ -230,19 +247,22 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => errorMessage.textContent = '', 5000);
     }
 
-    // Email Login
+    // Email/Password Auth
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = document.getElementById('email').value;
+        const password = document.getElementById('password') ? document.getElementById('password').value : '';
         
         setLoading(true);
         errorMessage.textContent = '';
 
+        const endpoint = isLoginMode ? '/api/login' : '/api/signup';
+
         try {
-            const response = await fetch('/api/login', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email })
+                body: JSON.stringify({ email: email, password: password })
             });
 
             if(response.ok) {

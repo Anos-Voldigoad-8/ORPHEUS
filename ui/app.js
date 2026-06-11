@@ -156,32 +156,69 @@
   }
 
   function applyRoleRestrictions() {
+    const navChat = $('#nav-chat');
+    const navFiles = $('#nav-files');
+    const roleText = $('.user-info__role');
+    const nameText = $('.user-info__name');
+    const profileSettingsGroup = $('#profile-settings-group');
+
     if (state.role === 'guest') {
-      const navChat = $('#nav-chat');
-      const navFiles = $('#nav-files');
       if (navChat) navChat.style.display = 'none';
       if (navFiles) navFiles.style.display = 'none';
-
-      const roleText = $('.user-info__role');
       if (roleText) roleText.textContent = 'GUEST ACCESS';
-      const nameText = $('.user-info__name');
       if (nameText) nameText.textContent = 'Visitor';
-
-      // Guest can't change profile settings
-      const profileSettingsGroup = $('#profile-settings-group');
       if (profileSettingsGroup) profileSettingsGroup.style.display = 'none';
-
-      // Switch to overview view automatically if guest
+      switchView('overview');
+    } else if (state.role === 'user') {
+      if (navFiles) navFiles.style.display = 'none';
+      if (roleText) roleText.textContent = 'USER ACCESS';
+      switchView('chat');
+    } else if (state.role === 'admin') {
+      if (navChat) navChat.style.display = '';
+      if (navFiles) navFiles.style.display = '';
+      if (roleText) roleText.textContent = 'ADMIN ACCESS';
       switchView('overview');
     }
   }
 
   // ── Profile Management ──
+  let currentAvatarSelection = 'A';
+  const avatarList = ['A', 'Goku', 'Gohan', 'Vegeta', 'Bulma', 'Rangiku', 'Yoruichi', 'Tsunade', 'Itachi', 'Jiraiya', 'Naruto', 'Hinata', 'Ichigo', 'Orihime', 'Aizen', 'Luffy', 'Zoro', 'Boa Hancock', 'Robin', 'Nami', 'Sanji'];
+
+  function initAvatarSelector() {
+      const container = $('#avatar-selector-container');
+      if (!container || container.children.length > 0) return;
+      
+      avatarList.forEach(name => {
+         const img = document.createElement('img');
+         img.className = 'avatar-option';
+         if(name === 'A') {
+             img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><rect width="60" height="60" fill="%231f2937"/><text x="30" y="40" font-family="sans-serif" font-size="30" fill="white" text-anchor="middle">A</text></svg>';
+         } else {
+             img.src = `/ui/assets/avatars/${name.replace(/ /g, '_')}.jpg`;
+         }
+         img.title = name;
+         img.dataset.avatar = name;
+         img.addEventListener('click', () => {
+             document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+             img.classList.add('selected');
+             currentAvatarSelection = name;
+         });
+         container.appendChild(img);
+      });
+  }
+
   async function loadProfile() {
+    initAvatarSelector();
     try {
       const res = await fetch('/api/profile');
       if (res.ok) {
         const profile = await res.json();
+        const nameInput = $('#setting-profile-name');
+        if(nameInput) nameInput.value = profile.name || '';
+        currentAvatarSelection = profile.avatar || 'A';
+        const themeToggle = $('#setting-profile-theme');
+        if(themeToggle) themeToggle.checked = (profile.theme === 'light');
         applyProfile(profile);
       }
     } catch (e) {

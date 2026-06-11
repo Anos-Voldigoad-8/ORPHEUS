@@ -27,13 +27,21 @@
                 <form id="login-form">
                     <div class="input-group">
                         <label>IDENTIFICATION (EMAIL)</label>
-                        <input type="email" id="email" required placeholder="operative@orpheus.net">
+                        <input type="email" id="email" required placeholder="email@example.com">
+                    </div>
+                    <div class="input-group" style="margin-top: 15px;">
+                        <label>SECURITY KEY (PASSWORD)</label>
+                        <input type="password" id="password" required placeholder="••••••••">
                     </div>
                     
-                    <button type="submit" class="btn-submit" id="submit-btn">
+                    <button type="submit" class="btn-submit" id="submit-btn" style="margin-top: 25px;">
                         <span class="btn-text">ESTABLISH LINK 🚀</span>
                         <span class="loader" id="loader"></span>
                     </button>
+                    
+                    <div style="margin-top: 15px; text-align: center; font-size: 0.85rem;">
+                        <a href="#" id="toggle-auth-mode" style="color: var(--cyan); text-decoration: none;">New operative? Request Security Clearance (Sign Up)</a>
+                    </div>
                 </form>
                 
                 <div class="divider">

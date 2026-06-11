@@ -387,21 +387,82 @@ async def serve_login():
         return FileResponse(login_file)
     return HTMLResponse("<h1>Login page not found</h1>", status_code=404)
 
-class LoginRequest(BaseModel):
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_users_db():
+    try:
+        with open("users.json", "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_users_db(db):
+    with open("users.json", "w") as f:
+        json.dump(db, f, indent=4)
+
+class AuthRequest(BaseModel):
     email: str
+    password: str
+
+@app.post("/api/signup")
+@limiter.limit("5/15minute")
+async def api_signup(request: Request, data: AuthRequest):
+    """Email/Password signup endpoint."""
+    email = data.email.strip().lower()
+    password = data.password
+    
+    if not email or "@" not in email:
+        return JSONResponse({"status": "error", "message": "Invalid email"}, status_code=400)
+    if len(password) < 6:
+        return JSONResponse({"status": "error", "message": "Password must be at least 6 characters"}, status_code=400)
+        
+    db = get_users_db()
+    if email in db:
+        return JSONResponse({"status": "error", "message": "Email already registered"}, status_code=400)
+    
+    # Assign role
+    role = "admin" if email == "lakshyasrivastava811@gmail.com" else "user"
+    
+    db[email] = {
+        "password_hash": pwd_context.hash(password),
+        "role": role
+    }
+    save_users_db(db)
+    
+    # Auto-login
+    session_data = {"email": email, "role": role}
+    token = serializer.dumps(session_data)
+    response = JSONResponse({"status": "success", "role": role})
+    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=86400)
+    return response
 
 @app.post("/api/login")
 @limiter.limit("5/15minute")
-async def api_login(request: Request, data: LoginRequest):
-    """Email login endpoint."""
-    email = data.email.strip()
+async def api_login(request: Request, data: AuthRequest):
+    """Email/Password login endpoint."""
+    email = data.email.strip().lower()
+    password = data.password
+    
     if not email or "@" not in email:
         return JSONResponse({"status": "error", "message": "Invalid email"}, status_code=400)
     
-    session_data = {"email": email, "role": "user"}
+    db = get_users_db()
+    user_data = db.get(email)
+    
+    if not user_data or not pwd_context.verify(password, user_data["password_hash"]):
+        return JSONResponse({"status": "error", "message": "Invalid email or password"}, status_code=401)
+    
+    # Check if admin email but somehow not admin (fix old records)
+    role = user_data.get("role", "user")
+    if email == "lakshyasrivastava811@gmail.com":
+        role = "admin"
+    
+    session_data = {"email": email, "role": role}
     token = serializer.dumps(session_data)
     
-    response = JSONResponse({"status": "success"})
+    response = JSONResponse({"status": "success", "role": role})
     response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=86400)
     return response
 
