@@ -214,25 +214,199 @@ class CreatorAgent(OrpheusAgent):
  
  
 class LLMAgent(OrpheusAgent):
-    """Handles general conversation via local Ollama LLM."""
+    """Handles general conversation via Gemini / OpenAI / Ollama (fallback chain)."""
+
+    SYSTEM_PROMPT = (
+        "You are ORPHEUS, an advanced AI assistant — the Omni-Responsive Processing Matrix. "
+        "You are intelligent, precise, and slightly futuristic in tone. "
+        "You can reason through complex problems, write code, analyze data, explain concepts, "
+        "and help with any task. Be concise but thorough. Use markdown formatting when helpful. "
+        "You are running locally on the user's machine as their personal AI command center."
+    )
+
     def __init__(self):
         super().__init__("LLM", "Conversational AI Agent")
+        self.provider = os.getenv('LLM_PROVIDER', 'ollama').lower()
+        self.temperature = float(os.getenv('LLM_TEMPERATURE', '0.7'))
+        self.max_tokens = int(os.getenv('LLM_MAX_TOKENS', '4096'))
+
+        # Gemini config
+        self.gemini_key = os.getenv('GEMINI_API_KEY', '')
+        self.gemini_model = os.getenv('GEMINI_MODEL', 'gemini-2.0-flash')
+
+        # OpenAI config
+        self.openai_key = os.getenv('OPENAI_API_KEY', '')
+        self.openai_model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
+
+        # Ollama config
         self.ollama_url = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
-        self.model = os.getenv('DEFAULT_LLM_MODEL', 'tinyllama')
- 
+        self.ollama_model = os.getenv('OLLAMA_MODEL', 'tinyllama')
+
+        logger.info(f"LLMAgent initialized — provider: {self.provider}")
+
     def process(self, command: str) -> str:
+        """Process command through the configured LLM provider with fallback chain."""
+        logger.info(f"LLMAgent [{self.provider}]: '{command[:80]}...'")
+
+        # Build conversation with memory
+        messages = [{"role": "system", "content": self.SYSTEM_PROMPT}]
+
+        # Add recent memory for context
+        for mem in list(self.memory)[-6:]:
+            if isinstance(mem.get("content"), str):
+                messages.append(mem)
+
+        messages.append({"role": "user", "content": command})
+
+        # Try provider chain: configured → fallbacks
+        providers = self._get_provider_chain()
+
+        for provider_name in providers:
+            try:
+                result = self._call_provider(provider_name, messages, command)
+                if result and not result.startswith("Error:"):
+                    # Store in memory
+                    self.memory.append({"role": "user", "content": command})
+                    self.memory.append({"role": "assistant", "content": result[:500]})
+                    return result
+            except Exception as e:
+                logger.warning(f"Provider '{provider_name}' failed: {e}")
+                continue
+
+        return (
+            "All LLM providers failed. Please check:\n"
+            "• Gemini: Set GEMINI_API_KEY in .env (free at https://aistudio.google.com/apikey)\n"
+            "• OpenAI: Set OPENAI_API_KEY in .env\n"
+            "• Ollama: Ensure Ollama is running at localhost:11434"
+        )
+
+    def _get_provider_chain(self) -> list:
+        """Build ordered list of providers to try."""
+        chain = [self.provider]
+        all_providers = ['gemini', 'openai', 'ollama']
+        for p in all_providers:
+            if p not in chain:
+                chain.append(p)
+        return chain
+
+    def _call_provider(self, provider: str, messages: list, raw_command: str) -> str:
+        """Call a specific LLM provider."""
+        if provider == 'gemini':
+            return self._call_gemini(messages)
+        elif provider == 'openai':
+            return self._call_openai(messages)
+        elif provider == 'ollama':
+            return self._call_ollama(raw_command)
+        else:
+            return f"Error: Unknown provider '{provider}'"
+
+    def _call_gemini(self, messages: list) -> str:
+        """Call Google Gemini API using REST (no SDK dependency)."""
+        if not self.gemini_key or self.gemini_key == 'PASTE_YOUR_GEMINI_KEY_HERE':
+            raise ValueError("Gemini API key not configured")
+
         import requests
-        logger.info(f"LLMAgent sending to Ollama: '{command}'")
-        try:
-            response = requests.post(
-                f"{self.ollama_url}/api/generate",
-                json={"model": self.model, "prompt": command, "stream": False},
-                timeout=60
-            )
-            data = response.json()
-            return data.get("response", "No response from LLM.")
-        except Exception as e:
-            return f"LLM Error: {e}"
+
+        # Build Gemini-format messages
+        gemini_contents = []
+        system_instruction = None
+
+        for msg in messages:
+            if msg["role"] == "system":
+                system_instruction = msg["content"]
+            elif msg["role"] == "user":
+                gemini_contents.append({
+                    "role": "user",
+                    "parts": [{"text": msg["content"]}]
+                })
+            elif msg["role"] == "assistant":
+                gemini_contents.append({
+                    "role": "model",
+                    "parts": [{"text": msg["content"]}]
+                })
+
+        payload = {
+            "contents": gemini_contents,
+            "generationConfig": {
+                "temperature": self.temperature,
+                "maxOutputTokens": self.max_tokens,
+            }
+        }
+
+        if system_instruction:
+            payload["systemInstruction"] = {
+                "parts": [{"text": system_instruction}]
+            }
+
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{self.gemini_model}:generateContent?key={self.gemini_key}"
+        )
+
+        response = requests.post(url, json=payload, timeout=60)
+
+        if response.status_code != 200:
+            error_detail = response.json().get("error", {}).get("message", response.text[:200])
+            raise ValueError(f"Gemini API error ({response.status_code}): {error_detail}")
+
+        data = response.json()
+        candidates = data.get("candidates", [])
+        if candidates:
+            parts = candidates[0].get("content", {}).get("parts", [])
+            if parts:
+                return parts[0].get("text", "No response text from Gemini.")
+
+        return "Gemini returned an empty response."
+
+    def _call_openai(self, messages: list) -> str:
+        """Call OpenAI API using REST."""
+        if not self.openai_key:
+            raise ValueError("OpenAI API key not configured")
+
+        import requests
+
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {self.openai_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": self.openai_model,
+                "messages": messages,
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens,
+            },
+            timeout=60,
+        )
+
+        if response.status_code != 200:
+            error_detail = response.json().get("error", {}).get("message", response.text[:200])
+            raise ValueError(f"OpenAI API error ({response.status_code}): {error_detail}")
+
+        data = response.json()
+        choices = data.get("choices", [])
+        if choices:
+            return choices[0].get("message", {}).get("content", "No response from OpenAI.")
+
+        return "OpenAI returned an empty response."
+
+    def _call_ollama(self, command: str) -> str:
+        """Call local Ollama instance."""
+        import requests
+
+        response = requests.post(
+            f"{self.ollama_url}/api/generate",
+            json={
+                "model": self.ollama_model,
+                "prompt": f"{self.SYSTEM_PROMPT}\n\nUser: {command}\n\nAssistant:",
+                "stream": False,
+            },
+            timeout=60,
+        )
+
+        data = response.json()
+        return data.get("response", "No response from Ollama.")
  
  
 ###############################################################################
