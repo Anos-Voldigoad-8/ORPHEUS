@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ORPHEUS — Omni-Responsive Processing Matrix.">
+    <meta name="theme-color" content="#030712">
+    <title>ORPHEUS — Launch</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/ui/landing.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>">
+</head>
+<body>
+    <!-- Three.js Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay -->
+    <div class="overlay">
+        <nav class="navbar">
+            <div class="logo">ORPHEUS</div>
+            <div class="nav-links">
+                <a href="#" onclick="document.getElementById('modal-features').style.display='flex'; return false;">FEATURES</a>
+                <a href="#" onclick="document.getElementById('modal-about').style.display='flex'; return false;">ABOUT</a>
+                <a href="/app" class="nav-btn">ACCESS MATRIX</a>
+            </div>
+        </nav>
+
+        <main class="hero">
+            <div class="hero-content">
+                <h2 class="subtitle">// OMNI-RESPONSIVE PROCESSING MATRIX</h2>
+                <h1 class="title">BEYOND <br> <span class="gradient-text">INTELLIGENCE</span></h1>
+                <p class="description">
+                    Step into the next evolution of computational thought. 
+                    Experience the ultimate neural network orchestrator, seamlessly integrating multi-agent AI, local execution, and futuristic holographics.
+                </p>
+                <div class="cta-group">
+                    <a href="/app" class="btn btn-primary">INITIALIZE MATRIX</a>
+                    <a href="https://github.com/Anos-Voldigoad-8" target="_blank" class="btn btn-secondary">VIEW SOURCE</a>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="footer">
+            <p>&copy; 2026 ORPHEUS PROJECT. ALL SYSTEMS NOMINAL.</p>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-features" class="modal">
+        <div class="modal-content glass">
+            <button class="modal-close" onclick="document.getElementById('modal-features').style.display='none'">✕</button>
+            <h2 class="modal-title">FEATURES</h2>
+            <ul class="feature-list">
+                <li><strong>Multi-Agent Orchestration:</strong> Dynamic delegation to specialized agents.</li>
+                <li><strong>Local Execution:</strong> Sandboxed workspace for File OS & script generation.</li>
+                <li><strong>Fallback Intelligence:</strong> Intelligent fallback chain across Gemini, OpenAI, and Ollama.</li>
+                <li><strong>Holographic Interface:</strong> Real-time neural visualization using Three.js and Canvas.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="modal-about" class="modal">
+        <div class="modal-content glass">
+            <button class="modal-close" onclick="document.getElementById('modal-about').style.display='none'">✕</button>
+            <h2 class="modal-title">ABOUT ORPHEUS</h2>
+            <p style="color: var(--text-muted); line-height: 1.6;">
+                ORPHEUS is the pinnacle of personal AI assistants. Conceived by Anos-Voldigoad-8, it bridges the gap between conversational AI and functional, agentic automation. It does more than just answer questions—it executes intent.
+            </p>
+        </div>
+    </div>
+
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="/ui/landing.js"></script>
+</body>
+</html>

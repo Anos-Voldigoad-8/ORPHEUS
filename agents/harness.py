@@ -184,33 +184,41 @@ class WebResearchAgent(OrpheusAgent):
  
 class CreatorAgent(OrpheusAgent):
     """Generates structured payloads like JSON, documents, and code."""
-    def __init__(self):
+    def __init__(self, llm_agent=None):
         super().__init__("Creator", "Content Creation Agent")
- 
+        self.llm_agent = llm_agent
+
     def process(self, request: str, payload_type: str = "generic") -> str:
         logger.info(f"CreatorAgent generating '{payload_type}' content.")
-        if "quiz" in request.lower():
-            return self._generate_quiz(request)
-        elif "code" in request.lower():
-            return self._generate_code(request)
-        else:
-            return f"Creator Agent ready. Requested: {request}."
- 
-    def _generate_quiz(self, topic: str) -> str:
-        quiz = {
-            "topic": topic,
-            "questions": [
-                {"q": f"Sample question 1 about {topic}?", "a": "Answer 1"},
-                {"q": f"Sample question 2 about {topic}?", "a": "Answer 2"}
-            ]
-        }
-        FileOSAgent()._write_file("output_quiz.json", json.dumps(quiz, indent=2))
-        return "Generated quiz and saved to output_quiz.json"
- 
-    def _generate_code(self, description: str) -> str:
-        code = f"# AI Generated Code for: {description}\n\ndef main():\n    print('Hello from ORPHEUS Creator Agent')\n\nif __name__ == '__main__':\n    main()"
-        FileOSAgent()._write_file("generated_code.py", code)
-        return "Generated code and saved to generated_code.py"
+        if not self.llm_agent:
+            return "Error: LLMAgent not linked to CreatorAgent."
+            
+        prompt = (
+            f"You are a code/content generation agent. Fulfill the following request. "
+            f"Output ONLY the exact file content requested, with no markdown code blocks around it if it's a script. "
+            f"Request: {request}"
+        )
+        content = self.llm_agent.process(prompt)
+        
+        # Remove markdown code block if present
+        if content.startswith("```"):
+            lines = content.split("\n")
+            if len(lines) > 2:
+                content = "\n".join(lines[1:-1])
+                
+        # Ask LLM for a filename
+        filename_prompt = (
+            f"Based on this request: '{request}', what should be the exact filename? "
+            f"Return ONLY the filename with extension (e.g. script.py). No other text."
+        )
+        filename = self.llm_agent.process(filename_prompt).strip()
+        filename = filename.replace("`", "").replace("'", "").replace('"', '').split("\n")[0].strip()
+        
+        if not filename or " " in filename:
+            filename = "generated_output.txt"
+            
+        FileOSAgent()._write_file(filename, content)
+        return f"Successfully generated content and saved to {filename} in your workspace.\n\nPreview:\n```\n{content[:200]}...\n```"
  
  
 class LLMAgent(OrpheusAgent):
@@ -418,8 +426,8 @@ class AgentHarness:
         self.commander = CommanderAgent()
         self.file_agent = FileOSAgent()
         self.web_agent = WebResearchAgent()
-        self.creator_agent = CreatorAgent()
         self.llm_agent = LLMAgent()
+        self.creator_agent = CreatorAgent(self.llm_agent)
         self.agents = {
             "file_os": self.file_agent,
             "web_research": self.web_agent,

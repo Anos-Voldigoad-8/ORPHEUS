@@ -265,6 +265,18 @@ ui_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_root():
+    """Serve the landing page."""
+    landing_file = os.path.join(ui_path, "landing.html")
+    if os.path.exists(landing_file):
+        return FileResponse(landing_file)
+    return HTMLResponse(
+        "<h1>Landing page not found</h1><p>Place landing.html in the ui/ directory.</p>",
+        status_code=404
+    )
+
+
+@app.get("/app", response_class=HTMLResponse)
+async def serve_app():
     """Serve the main ORPHEUS dashboard."""
     index_file = os.path.join(ui_path, "index.html")
     if os.path.exists(index_file):

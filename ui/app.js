@@ -18,6 +18,13 @@
     agents: {},
     activityLog: [],
     particleSystem: null,
+    settings: {
+      voice: false,
+      tts: true,
+      scanlines: true,
+      particles: true,
+      reconnect: true
+    }
   };
 
   // ── DOM Cache ──
@@ -62,11 +69,13 @@
       updateConnectionStatus('offline');
       log('error', 'Neural link severed. Reconnecting...');
 
-      // Auto-reconnect with exponential backoff
-      wsReconnectTimer = setTimeout(() => {
-        wsReconnectDelay = Math.min(wsReconnectDelay * 1.5, 10000);
-        connectWebSocket();
-      }, wsReconnectDelay);
+      // Auto-reconnect with exponential backoff if setting is enabled
+      if (state.settings.reconnect) {
+        wsReconnectTimer = setTimeout(() => {
+          wsReconnectDelay = Math.min(wsReconnectDelay * 1.5, 10000);
+          connectWebSocket();
+        }, wsReconnectDelay);
+      }
     };
 
     ws.onerror = () => {
@@ -210,6 +219,14 @@
   function sendCommand(text) {
     if (!text.trim()) return;
 
+    if (text.trim().toLowerCase() === '/clear') {
+      const container = $('#chat-messages');
+      if (container) container.innerHTML = '';
+      state.chatMessages = [];
+      addChatMessage('orpheus', 'Chat history cleared.');
+      return;
+    }
+
     // Add user message
     addChatMessage('user', text);
 
@@ -245,9 +262,12 @@
     const text = typeof payload === 'string' ? payload : payload.result || payload.message || JSON.stringify(payload);
     addChatMessage('orpheus', text);
 
-    // Speak it if voice is available
-    if (state.voiceListening && window.speechSynthesis) {
-      speak(text.substring(0, 300));
+    // Speak it if voice is available and TTS setting is on
+    if (state.settings.tts && window.speechSynthesis) {
+      // Don't speak if response is massive JSON
+      if (text.length < 500) {
+        speak(text.replace(/[#*`_]/g, '').trim());
+      }
     }
   }
 
@@ -278,7 +298,8 @@
     `;
 
     container.appendChild(msg);
-    container.scrollTop = container.scrollHeight;
+    // Smooth scroll to bottom
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
 
     state.chatMessages.push({ sender, text, time: now });
   }
@@ -499,8 +520,58 @@
     return div.innerHTML;
   }
 
+  // ── Settings Manager ──
+  function initSettings() {
+    // Load from local storage
+    const saved = localStorage.getItem('orpheus_settings');
+    if (saved) {
+      try {
+        state.settings = { ...state.settings, ...JSON.parse(saved) };
+      } catch (e) { console.error('Failed to parse settings'); }
+    }
+
+    // Bind checkboxes
+    const binds = {
+      'setting-voice': 'voice',
+      'setting-tts': 'tts',
+      'setting-scanlines': 'scanlines',
+      'setting-particles': 'particles',
+      'setting-reconnect': 'reconnect'
+    };
+
+    Object.entries(binds).forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.checked = state.settings[key];
+        el.addEventListener('change', (e) => {
+          state.settings[key] = e.target.checked;
+          localStorage.setItem('orpheus_settings', JSON.stringify(state.settings));
+          applySettings();
+        });
+      }
+    });
+
+    applySettings();
+  }
+
+  function applySettings() {
+    // Scanlines
+    const scanlines = document.querySelector('.scanline-overlay');
+    if (scanlines) scanlines.style.display = state.settings.scanlines ? 'block' : 'none';
+
+    // Particles
+    const particleCanvas = document.getElementById('particle-canvas');
+    if (particleCanvas) particleCanvas.style.display = state.settings.particles ? 'block' : 'none';
+
+    // Voice
+    if (state.settings.voice && !state.voiceListening) toggleVoice();
+    else if (!state.settings.voice && state.voiceListening) toggleVoice();
+  }
+
   // ── Initialization ──
   function init() {
+    initSettings();
+
     // Clock
     updateClock();
     setInterval(updateClock, 1000);
