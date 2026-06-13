@@ -6,6 +6,8 @@
 (function() {
     // Basic Scene Setup
     const container = document.getElementById('canvas-container');
+    if (!container) return;
+
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x030712, 0.0015);
 
@@ -203,6 +205,18 @@
 // LOGIN AUTHENTICATION LOGIC
 // ============================================================
 
+window.togglePasswordVisibility = function(inputId, iconElement) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        iconElement.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        iconElement.textContent = '👁️';
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const signupForm = document.getElementById('signup-form');
@@ -237,33 +251,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     function setLoading(isLoading, formType) {
-        guestBtn.disabled = isLoading;
+        if (guestBtn) guestBtn.disabled = isLoading;
         if (formType === 'login') {
-            loginSubmitBtn.disabled = isLoading;
-            loginBtnText.style.display = isLoading ? 'none' : 'inline-block';
-            loginLoader.style.display = isLoading ? 'inline-block' : 'none';
+            if (loginSubmitBtn) loginSubmitBtn.disabled = isLoading;
+            if (loginBtnText) loginBtnText.style.display = isLoading ? 'none' : 'inline-block';
+            if (loginLoader) loginLoader.style.display = isLoading ? 'inline-block' : 'none';
         } else if (formType === 'signup') {
-            signupSubmitBtn.disabled = isLoading;
-            signupBtnText.style.display = isLoading ? 'none' : 'inline-block';
-            signupLoader.style.display = isLoading ? 'inline-block' : 'none';
+            if (signupSubmitBtn) signupSubmitBtn.disabled = isLoading;
+            if (signupBtnText) signupBtnText.style.display = isLoading ? 'none' : 'inline-block';
+            if (signupLoader) signupLoader.style.display = isLoading ? 'inline-block' : 'none';
         } else {
-            loginSubmitBtn.disabled = isLoading;
-            signupSubmitBtn.disabled = isLoading;
+            if (loginSubmitBtn) loginSubmitBtn.disabled = isLoading;
+            if (signupSubmitBtn) signupSubmitBtn.disabled = isLoading;
         }
     }
 
     function showError(msg) {
-        errorMessage.textContent = msg;
-        setTimeout(() => errorMessage.textContent = '', 5000);
+        if (errorMessage) {
+            errorMessage.textContent = msg;
+            setTimeout(() => { if (errorMessage) errorMessage.textContent = ''; }, 5000);
+        }
     }
 
     async function handleAuth(e, endpoint, formType) {
         e.preventDefault();
-        const email = document.getElementById(`${formType}-email`).value;
-        const password = document.getElementById(`${formType}-password`).value;
+        const emailInput = document.getElementById(`${formType}-email`);
+        const passwordInput = document.getElementById(`${formType}-password`);
+        const email = emailInput ? emailInput.value : '';
+        const password = passwordInput ? passwordInput.value : '';
         
         setLoading(true, formType);
-        errorMessage.textContent = '';
+        if (errorMessage) errorMessage.textContent = '';
 
         try {
             const response = await fetch(endpoint, {
@@ -297,9 +315,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Guest Login
     if (guestBtn) {
-        guestBtn.addEventListener('click', async () => {
+        guestBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
             setLoading(true, 'guest');
-            errorMessage.textContent = '';
+            if (errorMessage) errorMessage.textContent = '';
 
             try {
                 const response = await fetch('/api/guest_login', {
