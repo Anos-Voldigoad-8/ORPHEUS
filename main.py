@@ -26,6 +26,7 @@ from pathlib import Path
 from itsdangerous import URLSafeSerializer
 from pydantic import BaseModel, Field
 import sys
+from database import session_manager
 
 # System metrics
 try:
@@ -185,7 +186,7 @@ def format_uptime(seconds: float) -> str:
 
 def get_agent_status() -> dict:
     """Get status of all agents."""
-    if agent_harness:
+    if user_harnesses:
         return {
             "commander": {"status": "active", "tasks": 0},
             "fileos": {"status": "active", "tasks": 0},
@@ -264,6 +265,9 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("⚠️ Core components not available. Running in degraded mode.")
 
+    # Initialize User Session and Activity Database
+    session_manager.init_db()
+
     # Start metrics broadcaster
     metrics_task = asyncio.create_task(metrics_broadcaster())
 
@@ -338,6 +342,11 @@ async def auth_middleware(request: Request, call_next):
             return RedirectResponse(url="/login")
         try:
             data = serializer.loads(session_cookie)
+            token = data.get("token")
+            if token:
+                db_session = session_manager.validate_session(token)
+                if not db_session:
+                    raise Exception("Session expired or invalid")
             request.state.user = data
         except Exception:
             if path.startswith("/api/"):
@@ -450,10 +459,15 @@ async def api_signup(request: Request, data: AuthRequest):
     save_users_db(db)
     
     # Auto-login
-    session_data = {"email": email, "role": role}
+    ip_address = request.client.host if request.client else ""
+    user_agent = request.headers.get("user-agent", "")
+    db_token = session_manager.create_session(email, ip_address, user_agent)
+    session_manager.log_activity(email, "signup", f"User signed up from {ip_address}")
+    
+    session_data = {"email": email, "role": role, "token": db_token}
     token = serializer.dumps(session_data)
     response = JSONResponse({"status": "success", "role": role})
-    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=86400)
+    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=30*86400)
     return response
 
 @app.post("/api/login")
@@ -484,26 +498,49 @@ async def api_login(request: Request, data: AuthRequest):
     if email == "lakshyasrivastava811@gmail.com":
         role = "admin"
     
-    session_data = {"email": email, "role": role}
+    ip_address = request.client.host if request.client else ""
+    user_agent = request.headers.get("user-agent", "")
+    db_token = session_manager.create_session(email, ip_address, user_agent)
+    session_manager.log_activity(email, "login", f"User logged in from {ip_address}")
+
+    session_data = {"email": email, "role": role, "token": db_token}
     token = serializer.dumps(session_data)
     
     response = JSONResponse({"status": "success", "role": role})
-    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=86400)
+    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=30*86400)
     return response
 
 @app.post("/api/guest_login")
 async def api_guest_login(request: Request):
     """Guest login endpoint."""
-    session_data = {"email": "guest@orpheus.net", "role": "guest"}
+    email = "guest@orpheus.net"
+    ip_address = request.client.host if request.client else ""
+    user_agent = request.headers.get("user-agent", "")
+    db_token = session_manager.create_session(email, ip_address, user_agent)
+    session_manager.log_activity(email, "guest_login", f"Guest logged in from {ip_address}")
+
+    session_data = {"email": email, "role": "guest", "token": db_token}
     token = serializer.dumps(session_data)
     
     response = JSONResponse({"status": "success"})
-    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=86400)
+    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=30*86400)
     return response
 
 @app.post("/api/logout")
 async def api_logout(request: Request):
     """Logout endpoint."""
+    session_cookie = request.cookies.get("orpheus_session")
+    if session_cookie:
+        try:
+            data = serializer.loads(session_cookie)
+            token = data.get("token")
+            if token:
+                session_manager.revoke_session(token)
+            email = data.get("email", "unknown")
+            session_manager.log_activity(email, "logout", "User logged out")
+        except Exception:
+            pass
+
     response = JSONResponse({"status": "success"})
     response.delete_cookie("orpheus_session")
     return response
@@ -532,6 +569,11 @@ async def api_metrics():
 async def api_agents():
     """Get agent status."""
     return get_agent_status()
+
+@app.get("/api/stats/users")
+async def api_stats_users():
+    """Get user session and activity statistics."""
+    return session_manager.get_stats()
 
 # ═══════════════════════════════════════════════════════════════
 # User Profile Endpoints
@@ -619,6 +661,7 @@ async def api_command(request: Request):
     harness = user_harnesses[email]
 
     try:
+        session_manager.log_activity(email, "command", f"REST command: {command[:100]}")
         result = harness.execute_command(command)
         await ws_manager.broadcast({
             "type": "activity",
@@ -717,6 +760,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 # Execute command
                 if CORE_AVAILABLE:
+                    session_manager.log_activity(email, "command", f"WS command: {command[:100]}")
                     if email not in user_harnesses:
                         user_harnesses[email] = AgentHarness(user_email=email)
                     harness = user_harnesses[email]
