@@ -45,9 +45,16 @@ except ImportError:
 # Import ORPHEUS Core Components
 try:
     from agents.harness import AgentHarness, WORKSPACE_DIR
+    try:
+        from voice.module import VoiceModule
+        VOICE_MODULE_AVAILABLE = True
+    except ImportError as e:
+        VOICE_MODULE_AVAILABLE = False
+        logging.error(f"Failed to import VoiceModule: {e}")
     CORE_AVAILABLE = True
 except ImportError as e:
     CORE_AVAILABLE = False
+    VOICE_MODULE_AVAILABLE = False
     WORKSPACE_DIR = Path("workspace")
     logging.error(f"Failed to import ORPHEUS core components: {e}")
 
@@ -64,6 +71,7 @@ logger = logging.getLogger("orpheus_main")
 from typing import Dict, Any
 user_harnesses: Dict[str, Any] = {}
 start_time = time.time()
+global_voice_module = None
 
 # ═══════════════════════════════════════════════════════════════
 # Profile Management
@@ -252,8 +260,40 @@ async def metrics_broadcaster():
 # ═══════════════════════════════════════════════════════════════
 # Lifespan
 # ═══════════════════════════════════════════════════════════════
+def handle_voice_command(command: str):
+    logger.info(f"Received voice command: {command}")
+    if not CORE_AVAILABLE:
+        return
+        
+    admin_email = "lakshyasrivastava811@gmail.com"
+    if admin_email not in user_harnesses:
+        user_harnesses[admin_email] = AgentHarness(user_email=admin_email)
+    harness = user_harnesses[admin_email]
+    
+    try:
+        session_manager.log_activity(admin_email, "voice_command", f"Voice: {command[:100]}")
+        result = harness.execute_command(command)
+        
+        # Optionally speak the response back
+        if global_voice_module and result.get("response"):
+            global_voice_module.speak(result["response"])
+            
+        # Broadcast activity to clients
+        asyncio.run(ws_manager.broadcast({
+            "type": "activity",
+            "payload": {
+                "icon": "🎙️",
+                "iconClass": "cmd",
+                "text": f"Voice: {command[:60]}..."
+            }
+        }))
+    except Exception as e:
+        logger.error(f"Voice Command execution error: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global global_voice_module
 
     logger.info("╔═══════════════════════════════════════════╗")
     logger.info("║  ORPHEUS — Omni-Responsive Processing     ║")
@@ -264,6 +304,13 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Agent Harness module loaded.")
     else:
         logger.warning("⚠️ Core components not available. Running in degraded mode.")
+
+    if VOICE_MODULE_AVAILABLE:
+        logger.info("🎙️ Initializing Voice Module...")
+        global_voice_module = VoiceModule()
+        global_voice_module.start_listening(handle_voice_command)
+    else:
+        logger.warning("⚠️ Voice module not available.")
 
     # Initialize User Session and Activity Database
     session_manager.init_db()
@@ -276,6 +323,9 @@ async def lifespan(app: FastAPI):
     yield
 
     logger.info("Shutting down ORPHEUS...")
+    if global_voice_module:
+        global_voice_module.stop_listening()
+        
     metrics_task.cancel()
     try:
         await metrics_task

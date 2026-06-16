@@ -84,7 +84,7 @@ class VoiceModule:
 
     def start_listening(self, on_command_callback: Callable[[str], None]):
         """
-        Starts a continuous listening loop in a background thread.
+        Starts a continuous listening loop in a background thread using a non-blocking queue.
         Listens for the wake word and captures the subsequent command.
         """
         if not WHISPER_AVAILABLE:
@@ -93,47 +93,51 @@ class VoiceModule:
 
         self.is_listening = True
         
+        import queue
+        audio_queue = queue.Queue()
+        
+        def audio_callback(indata, frames, time, status):
+            if status:
+                logger.warning(f"Audio status: {status}")
+            audio_queue.put(indata.copy().flatten())
+
         def listen_loop():
             logger.info(f"Listening for wake word '{self.wake_word}'...")
-            # Buffer for audio chunks
-            # For a real-time system, we would use a sliding window approach
-            # For this implementation, we simulate continuous recording in chunks
             
-            buffer_duration = 5 # seconds per chunk
+            buffer_duration = 3 # seconds per chunk
             chunk_size = int(self.sample_rate * buffer_duration)
             
-            # Note: For robust production, you might want to use a separate 
-            # keyword spotting library like pvporcupine or openwakeword.
-            
-            while self.is_listening:
-                try:
-                    # Record a 5-second chunk
-                    audio_chunk = sd.rec(chunk_size, samplerate=self.sample_rate, channels=1, dtype='float32')
-                    sd.wait()
-                    
-                    # Flatten the array
-                    audio_chunk = audio_chunk.flatten()
-                    
-                    text = self._process_audio_chunk(audio_chunk)
-                    logger.debug(f"Heard: '{text}'")
-                    
-                    if self.wake_word in text:
-                        logger.info("Wake word detected!")
-                        
-                        # Extract the command after the wake word
-                        # Simple parsing: everything after 'Orpheus' is the command
-                        parts = text.split(self.wake_word)
-                        command = parts[-1].strip()
-                        
-                        if command and on_command_callback:
-                            logger.info(f"Executing command: '{command}'")
-                            # Run callback in a new thread to prevent blocking the listener
-                            threading.Thread(target=on_command_callback, args=(command,), daemon=True).start()
+            # Start the non-blocking input stream
+            try:
+                with sd.InputStream(samplerate=self.sample_rate, channels=1, dtype='float32', blocksize=chunk_size, callback=audio_callback):
+                    while self.is_listening:
+                        try:
+                            # Wait for the next chunk from the audio stream
+                            audio_chunk = audio_queue.get(timeout=1.0)
                             
-                except Exception as e:
-                    logger.error(f"Error in listen loop: {e}")
-                    # Brief pause to prevent log spam
-                    threading.Event().wait(1)
+                            text = self._process_audio_chunk(audio_chunk)
+                            logger.debug(f"Heard: '{text}'")
+                            
+                            if self.wake_word in text:
+                                logger.info("Wake word detected!")
+                                
+                                # Extract the command after the wake word
+                                parts = text.split(self.wake_word)
+                                command = parts[-1].strip()
+                                
+                                if command and on_command_callback:
+                                    logger.info(f"Executing command: '{command}'")
+                                    # Run callback in a new thread to prevent blocking the listener
+                                    threading.Thread(target=on_command_callback, args=(command,), daemon=True).start()
+                                    
+                        except queue.Empty:
+                            # Timeout allows the loop to check self.is_listening
+                            continue
+                        except Exception as e:
+                            logger.error(f"Error processing audio chunk: {e}")
+            except Exception as e:
+                logger.error(f"Error starting audio stream: {e}")
+                self.is_listening = False
         
         self.listen_thread = threading.Thread(target=listen_loop, daemon=True)
         self.listen_thread.start()
