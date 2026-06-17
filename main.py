@@ -460,64 +460,41 @@ async def serve_login():
     login_file = os.path.join(ui_path, "login.html")
     if os.path.exists(login_file):
         return FileResponse(login_file)
-import bcrypt
+    return HTMLResponse("<h1>Login page not found</h1>", status_code=404)
 
-def get_users_db():
-    try:
-        with open("data/users.json", "r") as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_users_db(db):
-    os.makedirs("data", exist_ok=True)
-    with open("data/users.json", "w") as f:
-        json.dump(db, f, indent=4)
+from core.db import get_user_by_email, create_user, verify_password, update_last_login
 
 class AuthRequest(BaseModel):
     email: str = Field(..., max_length=100)
     password: str = Field(..., min_length=6, max_length=128)
+
 @app.post("/api/signup")
 async def api_signup(request: Request, data: AuthRequest):
-    """Email/Password signup endpoint."""
+    """Email/Password signup endpoint using DB ORM."""
     if not check_rate_limit(request):
         return JSONResponse({"status": "error", "message": "Too many requests. Please try again in 15 minutes."}, status_code=429)
-        
     email = data.email.strip().lower()
     password = data.password
-    
     if not email or "@" not in email:
         return JSONResponse({"status": "error", "message": "Invalid email"}, status_code=400)
     if len(password) < 6:
         return JSONResponse({"status": "error", "message": "Password must be at least 6 characters"}, status_code=400)
-        
-    db = get_users_db()
-    if email in db:
+    # Check if user exists in DB
+    existing_user = get_user_by_email(email)
+    if existing_user:
         return JSONResponse({"status": "error", "message": "Email already registered"}, status_code=400)
-    
-    # Assign role
     role = "admin" if email == "lakshyasrivastava811@gmail.com" else "user"
-    
-    # Generate bcrypt hash (lower rounds to 8 for speed)
-    salt = bcrypt.gensalt(rounds=8)
-    hashed = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
-    
-    db[email] = {
-        "password_hash": hashed,
-        "role": role
-    }
-    save_users_db(db)
-    
+    # Create user in DB
+    user = create_user(email, password, role)
     # Auto-login
     ip_address = request.client.host if request.client else ""
     user_agent = request.headers.get("user-agent", "")
     db_token = session_manager.create_session(email, ip_address, user_agent)
     session_manager.log_activity(email, "signup", f"User signed up from {ip_address}")
-    
     session_data = {"email": email, "role": role, "token": db_token}
     token = serializer.dumps(session_data)
     response = JSONResponse({"status": "success", "role": role})
-    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=30*86400)
+    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=30*86400, secure=True, samesite="strict")
     return response
 
 @app.post("/api/login")
@@ -532,19 +509,18 @@ async def api_login(request: Request, data: AuthRequest):
     if not email or "@" not in email:
         return JSONResponse({"status": "error", "message": "Invalid email"}, status_code=400)
     
-    db = get_users_db()
-    user_data = db.get(email)
-    
-    if not user_data:
-        return JSONResponse({"status": "error", "message": "Invalid email or password"}, status_code=401)
-        
-    # Verify bcrypt hash
-    stored_hash = user_data["password_hash"].encode('utf-8')
-    if not bcrypt.checkpw(password.encode('utf-8'), stored_hash):
+    # ORM based authentication
+    user = get_user_by_email(email)
+    if not user:
         return JSONResponse({"status": "error", "message": "Invalid email or password"}, status_code=401)
     
-    # Check if admin email but somehow not admin (fix old records)
-    role = user_data.get("role", "user")
+    if not verify_password(password, user.password_hash):
+        return JSONResponse({"status": "error", "message": "Invalid email or password"}, status_code=401)
+    
+    # Update last login timestamp
+    update_last_login(email)
+    
+    role = getattr(user, "role", "user")
     if email == "lakshyasrivastava811@gmail.com":
         role = "admin"
     
@@ -557,7 +533,7 @@ async def api_login(request: Request, data: AuthRequest):
     token = serializer.dumps(session_data)
     
     response = JSONResponse({"status": "success", "role": role})
-    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=30*86400)
+    response.set_cookie(key="orpheus_session", value=token, httponly=True, max_age=30*86400, secure=True, samesite="strict")
     return response
 
 @app.post("/api/guest_login")
