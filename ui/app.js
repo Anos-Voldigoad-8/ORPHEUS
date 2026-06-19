@@ -36,6 +36,7 @@
   let ws = null;
   let wsReconnectTimer = null;
   let wsReconnectDelay = 1000;
+  let hasConnectedBefore = false;
 
   function connectWebSocket() {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -47,6 +48,11 @@
     ws = new WebSocket(url);
 
     ws.onopen = () => {
+      if (hasConnectedBefore) {
+        window.location.reload();
+        return;
+      }
+      hasConnectedBefore = true;
       state.wsConnected = true;
       wsReconnectDelay = 1000;
       updateConnectionStatus('online');

@@ -367,10 +367,16 @@ def check_rate_limit(request: Request):
     auth_attempts[ip] = attempts
     return True
 
+LOGIN_PAUSED = True
+
 # Auth Middleware
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
+    
+    if LOGIN_PAUSED:
+        request.state.user = {"email": "lakshyasrivastava811@gmail.com", "role": "admin", "token": "bypass"}
+        return await call_next(request)
     
     protected_prefixes = ["/app", "/api/"]
     public_paths = ["/api/login", "/api/guest_login", "/api/metrics"]
@@ -425,6 +431,9 @@ ui_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 @app.get("/", response_class=HTMLResponse)
 async def serve_root():
     """Serve the landing page."""
+    # if LOGIN_PAUSED:
+    #     return RedirectResponse(url="/app")
+        
     landing_file = os.path.join(ui_path, "landing.html")
     if os.path.exists(landing_file):
         return FileResponse(landing_file)
@@ -715,7 +724,11 @@ async def websocket_endpoint(websocket: WebSocket):
     session_cookie = websocket.cookies.get("orpheus_session")
     role = "guest"
     email = "guest"
-    if session_cookie:
+    
+    if LOGIN_PAUSED:
+        role = "admin"
+        email = "lakshyasrivastava811@gmail.com"
+    elif session_cookie:
         try:
             data = serializer.loads(session_cookie)
             role = data.get("role", "guest")
@@ -864,11 +877,22 @@ else:
 # Entry Point
 # ═══════════════════════════════════════════════════════════════
 if __name__ == "__main__":
+    import webbrowser
+    import threading
+    import time
+    
+    def open_browser():
+        time.sleep(1.5)
+        webbrowser.open("http://localhost:8000")
+        
+    threading.Thread(target=open_browser, daemon=True).start()
+
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=8000,
         reload=True,
+        reload_dirs=["ui", "."],
         lifespan="on",
         log_level="info"
     )
