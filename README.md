@@ -10,6 +10,20 @@
 
 ---
 
+## 🌟 System Overview: What is ORPHEUS?
+
+ORPHEUS (Omni-Responsive Processing Matrix) is an advanced, privacy-first AI command center designed to act as your personal, highly capable digital assistant. Engineered with a multi-agent architecture, ORPHEUS seamlessly integrates natural language processing, real-time web research, autonomous file operations, and code generation into a single, cohesive interface.
+
+**Why ORPHEUS is valuable to you:**
+- **Absolute Privacy:** Powered by local LLM inference (Ollama) and robust AES-256 encryption, ensuring your data and conversations never leave your machine.
+- **Jarvis-like Voice Control:** Navigate, execute commands, and converse entirely hands-free using its integrated speech recognition functionality.
+- **Autonomous Task Execution:** Delegate complex tasks to 5 specialized AI agents that can securely read/write files in a sandboxed environment, search the web, and solve coding problems.
+- **Futuristic Interface:** Monitor your system metrics and interact with the AI through a stunning, real-time holographic dashboard.
+
+Whether you're automating workflows, managing projects, or researching new topics, ORPHEUS is the ultimate copilot that supercharges your productivity.
+
+---
+
 ## ⚡ Features
 
 | Feature | Status | Description |

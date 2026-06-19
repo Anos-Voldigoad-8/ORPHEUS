@@ -1,79 +1,1907 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="ORPHEUS — Omni-Responsive Processing Matrix.">
-    <meta name="theme-color" content="#030712">
-    <title>ORPHEUS — Launch</title>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/ui/landing.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORPHEUS — Omni-Responsive Processing Matrix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,600;1,300&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   DESIGN TOKENS
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --void:       #000508;
+  --deep:       #060E1A;
+  --card:       #091422;
+  --panel:      #0C1A2E;
+  --rim:        #152840;
+  --silver:     #7A96B8;
+  --mist:       #B0C8E8;
+  --white:      #D8ECFF;
+  --cyan:       #00E8CC;
+  --cyan-lo:    rgba(0,232,204,0.08);
+  --cyan-glow:  rgba(0,232,204,0.35);
+  --ultra:      #6200FF;
+  --ultra-lo:   rgba(98,0,255,0.1);
+  --alert:      #FF2B68;
+  --amber:      #FF8C00;
+  --green:      #00FF88;
+  --orb:        'Orbitron',monospace;
+  --mono:       'IBM Plex Mono',monospace;
+  --sans:       'Space Grotesk',sans-serif;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+
+body {
+  background: var(--void);
+  color: var(--silver);
+  font-family: var(--mono);
+  overflow-x: hidden;
+}
+
+/* Scanlines */
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background:repeating-linear-gradient(
+    0deg,transparent,transparent 3px,
+    rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px
+  );
+  pointer-events:none;
+  z-index:9998;
+}
+
+/* Hex grid background */
+.hex-bg {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V18L28 2l28 16v32L28 66zM28 66l28 16v18H0V82L28 66z' fill='none' stroke='rgba(21,40,64,0.35)' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+/* ─────────────────────────────────────────────────────────────
+   BOOT SEQUENCE
+   ───────────────────────────────────────────────────────────── */
+#boot {
+  position:fixed;
+  inset:0;
+  background:#000;
+  z-index:10000;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  font-family:var(--mono);
+}
+
+#boot-wrap {
+  width:min(680px,88vw);
+  padding:20px 0;
+}
+
+.bl {
+  font-size:12.5px;
+  line-height:1.9;
+  white-space:nowrap;
+  overflow:hidden;
+  color:#00E8CC;
+}
+.bl.dim  { color:#1E3650; }
+.bl.ok::after { content:' ✓'; color:#00FF88; }
+.bl.warn { color:#FF8C00; }
+.bl.hdr  { color:#6200FF; }
+.bl.done { color:#D8ECFF; font-weight:600; }
+
+#boot-bar {
+  margin-top:28px;
+  width:100%;
+  height:2px;
+  background:#0C1A2E;
+}
+#boot-bar-fill {
+  height:100%;
+  background:linear-gradient(90deg,#6200FF,#00E8CC);
+  width:0%;
+  transition:width 0.15s;
+}
+
+#boot-skip {
+  position:fixed;
+  bottom:28px;
+  right:28px;
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:2px;
+  color:#1E3650;
+  border:1px solid #152840;
+  background:none;
+  padding:7px 16px;
+  cursor:pointer;
+  transition:all .2s;
+}
+#boot-skip:hover { color:var(--cyan); border-color:var(--cyan); }
+
+/* Glitch wipe out */
+@keyframes glitch-exit {
+  0%   { transform:translateX(0);   opacity:1; }
+  15%  { transform:translateX(-6px);opacity:.9; }
+  30%  { transform:translateX(8px); opacity:.8; }
+  50%  { transform:translateX(-4px);opacity:.5; }
+  75%  { transform:translateX(4px); opacity:.2; }
+  100% { transform:translateX(0);   opacity:0;  }
+}
+#boot.exiting { animation:glitch-exit .55s ease-out forwards; pointer-events:none; }
+
+/* ─────────────────────────────────────────────────────────────
+   NAVIGATION
+   ───────────────────────────────────────────────────────────── */
+nav {
+  position:fixed;
+  inset:0 0 auto 0;
+  z-index:1000;
+  height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 44px;
+  background:rgba(0,5,8,.88);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--rim);
+}
+
+.n-logo {
+  font-family:var(--orb);
+  font-size:17px;
+  font-weight:700;
+  color:var(--white);
+  letter-spacing:4px;
+  text-decoration:none;
+}
+.n-logo em { color:var(--cyan); font-style:normal; }
+
+.n-links {
+  display:flex;
+  gap:28px;
+  list-style:none;
+}
+.n-links a {
+  font-size:10px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--silver);
+  text-decoration:none;
+  transition:color .2s;
+}
+.n-links a:hover { color:var(--cyan); }
+
+.n-pill {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:10px;
+  letter-spacing:1.5px;
+  color:var(--silver);
+}
+.n-dot {
+  width:6px; height:6px;
+  border-radius:50%;
+  background:var(--cyan);
+  box-shadow:0 0 10px var(--cyan);
+  animation:pip 2s ease-in-out infinite;
+}
+@keyframes pip { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ─────────────────────────────────────────────────────────────
+   HERO
+   ───────────────────────────────────────────────────────────── */
+#hero {
+  position:relative;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+#c { position:absolute; inset:0; }
+
+.hero-inner {
+  position:relative;
+  z-index:2;
+  text-align:center;
+  padding:80px 24px 40px;
+}
+
+.hero-eye {
+  font-size:10px;
+  letter-spacing:5px;
+  text-transform:uppercase;
+  color:var(--cyan);
+  margin-bottom:28px;
+}
+
+.hero-h1 {
+  font-family:var(--orb);
+  font-size:clamp(52px,10vw,130px);
+  font-weight:900;
+  color:var(--white);
+  letter-spacing:10px;
+  line-height:.9;
+  position:relative;
+  display:inline-block;
+}
+.hero-h1::before, .hero-h1::after {
+  content:attr(data-t);
+  position:absolute;
+  inset:0;
+}
+.hero-h1::before {
+  color:var(--ultra);
+  clip-path:polygon(0 28%,100% 28%,100% 48%,0 48%);
+  animation:gA 4s infinite;
+}
+.hero-h1::after {
+  color:var(--alert);
+  clip-path:polygon(0 62%,100% 62%,100% 72%,0 72%);
+  animation:gB 4s infinite;
+}
+@keyframes gA {
+  0%,88%,100%{transform:translate(0)} 90%{transform:translate(-4px,1px)} 92%{transform:translate(4px,-1px)} 94%{transform:translate(-2px,2px)}
+}
+@keyframes gB {
+  0%,82%,100%{transform:translate(0)} 84%{transform:translate(5px,-2px)} 86%{transform:translate(-4px,2px)} 88%{transform:translate(2px,-1px)}
+}
+
+.hero-sub {
+  font-size:12px;
+  letter-spacing:3px;
+  color:var(--silver);
+  text-transform:uppercase;
+  margin-top:22px;
+}
+
+.hero-stats {
+  display:flex;
+  gap:0;
+  justify-content:center;
+  margin-top:52px;
+}
+.h-stat {
+  padding:0 36px;
+  border-right:1px solid var(--rim);
+  text-align:center;
+}
+.h-stat:last-child { border-right:none; }
+.h-val {
+  font-family:var(--orb);
+  font-size:30px;
+  font-weight:700;
+  color:var(--cyan);
+  display:block;
+}
+.h-lbl {
+  font-size:9px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--silver);
+  margin-top:5px;
+  display:block;
+}
+
+.hero-btns {
+  display:flex;
+  gap:14px;
+  justify-content:center;
+  margin-top:48px;
+}
+.btn {
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:2.5px;
+  text-transform:uppercase;
+  padding:13px 30px;
+  cursor:pointer;
+  text-decoration:none;
+  display:inline-block;
+  transition:all .3s;
+  position:relative;
+  overflow:hidden;
+}
+.btn-p {
+  color:var(--cyan);
+  border:1px solid var(--cyan);
+  background:transparent;
+}
+.btn-p::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:var(--cyan);
+  transform:translateX(-101%);
+  transition:transform .3s;
+  z-index:-1;
+}
+.btn-p:hover { color:var(--void); }
+.btn-p:hover::before { transform:translateX(0); }
+.btn-s {
+  color:var(--silver);
+  border:1px solid var(--rim);
+  background:transparent;
+}
+.btn-s:hover { border-color:var(--mist); color:var(--white); }
+
+.scroll-hint {
+  position:absolute;
+  bottom:36px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  color:var(--rim);
+  font-size:9px;
+  letter-spacing:3px;
+}
+.s-line {
+  width:1px;
+  height:36px;
+  background:linear-gradient(to bottom,var(--rim),transparent);
+  animation:sdrp 2s ease-in infinite;
+}
+@keyframes sdrp {
+  0%{transform:scaleY(0);transform-origin:top;opacity:1}
+  100%{transform:scaleY(1);transform-origin:top;opacity:0}
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SHARED SECTION STYLES
+   ───────────────────────────────────────────────────────────── */
+section { position:relative; }
+.si {
+  max-width:1200px;
+  margin:0 auto;
+  padding:110px 44px;
+}
+
+.s-eye {
+  font-size:9.5px;
+  letter-spacing:4px;
+  text-transform:uppercase;
+  color:var(--cyan);
+  margin-bottom:14px;
+}
+
+.s-h2 {
+  font-family:var(--orb);
+  font-size:clamp(26px,3.8vw,50px);
+  font-weight:700;
+  color:var(--white);
+  line-height:1.1;
+  letter-spacing:1.5px;
+}
+
+/* Reveal on scroll */
+.rv {
+  opacity:0;
+  transform:translateY(24px);
+  transition:opacity .7s ease, transform .7s ease;
+}
+.rv.in { opacity:1; transform:translateY(0); }
+.rv.d1 { transition-delay:.08s; }
+.rv.d2 { transition-delay:.16s; }
+.rv.d3 { transition-delay:.24s; }
+.rv.d4 { transition-delay:.32s; }
+.rv.d5 { transition-delay:.40s; }
+
+/* ─────────────────────────────────────────────────────────────
+   MISSION
+   ───────────────────────────────────────────────────────────── */
+#mission {
+  background:var(--void);
+  border-top:1px solid var(--rim);
+}
+.mission-grid {
+  display:grid;
+  grid-template-columns:1.1fr 0.9fr;
+  gap:72px;
+  align-items:start;
+  margin-top:56px;
+}
+.m-text p {
+  font-size:14.5px;
+  line-height:2;
+  color:var(--silver);
+  margin-bottom:18px;
+}
+.m-text strong { color:var(--white); }
+.m-text em { color:var(--cyan); font-style:normal; }
+
+.m-tiles {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:2px;
+}
+.m-tile {
+  background:var(--card);
+  border:1px solid var(--rim);
+  padding:26px 22px;
+  position:relative;
+}
+.m-tile::before {
+  content:'';
+  position:absolute;
+  top:0; left:0;
+  width:2px; height:100%;
+  background:var(--tc, var(--cyan));
+}
+.m-tile:nth-child(2){--tc:var(--ultra)}
+.m-tile:nth-child(3){--tc:var(--alert)}
+.m-tile:nth-child(4){--tc:var(--amber)}
+
+.m-tile-val {
+  font-family:var(--orb);
+  font-size:24px;
+  font-weight:700;
+  color:var(--tc, var(--cyan));
+  margin-bottom:8px;
+}
+.m-tile-txt {
+  font-size:11px;
+  line-height:1.7;
+  color:var(--silver);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   AGENTS
+   ───────────────────────────────────────────────────────────── */
+#agents {
+  background:var(--deep);
+  border-top:1px solid var(--rim);
+}
+.agents-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  margin-bottom:52px;
+}
+.a-count {
+  font-size:10px;
+  letter-spacing:2px;
+  color:var(--silver);
+}
+.agents-row {
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:2px;
+}
+.a-card {
+  background:var(--card);
+  border:1px solid var(--rim);
+  padding:32px 22px;
+  position:relative;
+  overflow:hidden;
+  transition:border-color .3s, transform .3s, background .3s;
+  cursor:default;
+}
+.a-card::before {
+  content:'';
+  position:absolute;
+  bottom:0; left:0; right:0;
+  height:2px;
+  background:var(--ac, var(--cyan));
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform .35s;
+}
+.a-card::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:radial-gradient(ellipse at 50% 100%, var(--ac-lo,rgba(0,232,204,0.06)), transparent 70%);
+  opacity:0;
+  transition:opacity .3s;
+}
+.a-card:hover { border-color:var(--ac,var(--cyan)); transform:translateY(-5px); }
+.a-card:hover::before { transform:scaleX(1); }
+.a-card:hover::after  { opacity:1; }
+
+.a-ico  { font-size:28px; margin-bottom:18px; }
+.a-unit {
+  font-size:9px; letter-spacing:3px; text-transform:uppercase;
+  color:var(--ac,var(--cyan)); margin-bottom:6px;
+}
+.a-name {
+  font-family:var(--orb);
+  font-size:13px; font-weight:700;
+  color:var(--white); letter-spacing:1px; margin-bottom:12px;
+}
+.a-desc { font-size:11.5px; line-height:1.8; color:var(--silver); }
+.a-st {
+  display:flex; align-items:center; gap:6px;
+  margin-top:18px; font-size:9.5px; letter-spacing:1.5px;
+  color:var(--silver);
+}
+.a-st-dot {
+  width:5px; height:5px; border-radius:50%;
+  background:var(--ac,var(--cyan));
+  animation:pip 1.8s infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FEATURES
+   ───────────────────────────────────────────────────────────── */
+#features {
+  background:var(--void);
+  border-top:1px solid var(--rim);
+}
+.feat-layout {
+  display:grid;
+  grid-template-columns:3fr 2fr;
+  gap:2px;
+  margin-top:52px;
+}
+.feat-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:2px;
+}
+.f-card {
+  background:var(--card);
+  border:1px solid var(--rim);
+  padding:32px;
+  transition:border-color .3s;
+  position:relative;
+  overflow:hidden;
+}
+.f-card:hover { border-color:var(--cyan); }
+.f-card::before {
+  content:attr(data-num);
+  position:absolute;
+  top:16px; right:20px;
+  font-family:var(--orb);
+  font-size:36px;
+  font-weight:900;
+  color:rgba(0,232,204,0.04);
+}
+.f-ic { font-size:22px; margin-bottom:14px; }
+.f-ttl { font-family:var(--sans); font-size:15px; font-weight:600; color:var(--white); margin-bottom:8px; }
+.f-dsc { font-size:12px; line-height:1.75; color:var(--silver); }
+.f-badge {
+  display:inline-block;
+  margin-top:14px; padding:2px 9px;
+  font-size:8.5px; letter-spacing:2px; text-transform:uppercase;
+  border:1px solid var(--cyan); color:var(--cyan);
+}
+
+.feat-panel {
+  background:var(--card);
+  border:1px solid var(--rim);
+  padding:32px;
+  display:flex;
+  flex-direction:column;
+}
+.fp-head {
+  font-family:var(--orb);
+  font-size:11px; letter-spacing:2px;
+  color:var(--white); margin-bottom:22px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--rim);
+}
+.cap-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 0;
+  border-bottom:1px solid rgba(21,40,64,.6);
+  font-size:11.5px;
+}
+.cap-row:last-of-type { border-bottom:none; }
+.cap-nm { color:var(--silver); }
+.cap-bar {
+  width:76px; height:2px;
+  background:var(--rim); position:relative; flex-shrink:0;
+}
+.cap-fill {
+  position:absolute;
+  top:0; left:0; height:100%;
+  background:linear-gradient(90deg,var(--ultra),var(--cyan));
+  width:0;
+  transition:width 1.2s ease;
+}
+
+.fp-lm {
+  margin-top:auto;
+  padding-top:20px;
+  border-top:1px solid var(--rim);
+  font-size:11px;
+}
+.fp-lm-label { font-size:9px; letter-spacing:2px; color:var(--cyan); margin-bottom:8px; }
+.fp-lm-val { color:var(--white); }
+.fp-lm-sub { color:var(--silver); font-size:10.5px; margin-top:4px; }
+
+/* ─────────────────────────────────────────────────────────────
+   SECURITY
+   ───────────────────────────────────────────────────────────── */
+#security {
+  background:var(--deep);
+  border-top:1px solid var(--rim);
+}
+.sec-layout {
+  display:grid;
+  grid-template-columns:1fr 1.2fr;
+  gap:80px;
+  align-items:center;
+  margin-top:56px;
+}
+
+/* Orbital rings */
+.orbit-wrap {
+  width:300px; height:300px;
+  position:relative;
+  margin:0 auto;
+  flex-shrink:0;
+}
+.orbit {
+  position:absolute;
+  border-radius:50%;
+  border:1px solid;
+  top:50%; left:50%;
+}
+.orbit-core {
+  width:56px; height:56px;
+  border-color:var(--cyan);
+  background:rgba(0,232,204,.12);
+  transform:translate(-50%,-50%);
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px;
+  box-shadow:0 0 20px var(--cyan-glow), inset 0 0 20px rgba(0,232,204,.08);
+}
+.orbit-1 {
+  width:118px; height:118px;
+  border-color:rgba(0,232,204,.3);
+  transform:translate(-50%,-50%) rotate(0deg);
+  animation:orb 16s linear infinite;
+}
+.orbit-2 {
+  width:188px; height:188px;
+  border-color:rgba(98,0,255,.3);
+  transform:translate(-50%,-50%) rotate(0deg);
+  animation:orb 26s linear infinite reverse;
+}
+.orbit-3 {
+  width:260px; height:260px;
+  border-color:rgba(255,43,104,.2);
+  transform:translate(-50%,-50%) rotate(0deg);
+  animation:orb 40s linear infinite;
+}
+.orbit-satellite {
+  position:absolute;
+  border-radius:50%;
+  top:-5px; left:50%;
+  transform:translateX(-50%);
+}
+.orbit-1 .orbit-satellite { width:9px;height:9px;background:var(--cyan);box-shadow:0 0 10px var(--cyan); }
+.orbit-2 .orbit-satellite { width:7px;height:7px;background:var(--ultra);box-shadow:0 0 10px var(--ultra); }
+.orbit-3 .orbit-satellite { width:6px;height:6px;background:var(--alert);box-shadow:0 0 10px var(--alert); }
+@keyframes orb {
+  from{transform:translate(-50%,-50%) rotate(0deg)}
+  to  {transform:translate(-50%,-50%) rotate(360deg)}
+}
+
+.sec-layers { display:flex; flex-direction:column; gap:16px; }
+.s-layer {
+  display:flex; gap:18px; align-items:flex-start;
+  padding:20px;
+  background:var(--card);
+  border:1px solid var(--rim);
+  transition:border-color .3s;
+}
+.s-layer:hover { border-color:var(--cyan); }
+.s-icon {
+  width:42px; height:42px;
+  background:var(--cyan-lo);
+  border:1px solid rgba(0,232,204,.2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; flex-shrink:0;
+}
+.s-ttl { font-family:var(--sans); font-size:14px; font-weight:600; color:var(--white); margin-bottom:5px; }
+.s-dsc { font-size:11.5px; line-height:1.75; color:var(--silver); }
+.s-tag {
+  display:inline-block; margin-top:8px; padding:2px 9px;
+  font-size:8.5px; letter-spacing:2px; text-transform:uppercase;
+  border:1px solid var(--cyan); color:var(--cyan);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   LIVE FEED
+   ───────────────────────────────────────────────────────────── */
+#livefeed {
+  background:var(--void);
+  border-top:1px solid var(--rim);
+}
+.lf-layout {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:2px;
+  margin-top:52px;
+}
+.lf-terminal {
+  background:#000;
+  border:1px solid var(--rim);
+}
+.lf-th {
+  display:flex; align-items:center; gap:8px;
+  padding:11px 18px;
+  background:#040404;
+  border-bottom:1px solid var(--rim);
+}
+.td { width:10px; height:10px; border-radius:50%; }
+.td.r{background:#FF5F57} .td.y{background:#FFBD2E} .td.g{background:#28C840}
+.tt { margin-left:6px; font-size:10px; color:var(--silver); letter-spacing:.5px; }
+.lf-body {
+  padding:22px 24px;
+  height:320px;
+  overflow:hidden;
+  position:relative;
+}
+.lf-body::after {
+  content:'';
+  position:absolute;
+  bottom:0; left:0; right:0;
+  height:60px;
+  background:linear-gradient(transparent,#000);
+}
+#feed-lines { display:flex; flex-direction:column; gap:2px; }
+.feed-line {
+  font-size:12px;
+  line-height:1.7;
+  animation:feedIn .3s ease;
+}
+@keyframes feedIn {
+  from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)}
+}
+.fl-ts   { color:#1E3650; margin-right:8px; }
+.fl-src  { color:var(--ultra); margin-right:8px; }
+.fl-ok   { color:var(--green); }
+.fl-info { color:var(--cyan); }
+.fl-warn { color:var(--amber); }
+.fl-cmd  { color:var(--white); }
+
+.lf-metrics {
+  background:var(--card);
+  border:1px solid var(--rim);
+  padding:28px;
+}
+.lf-m-title {
+  font-family:var(--orb); font-size:11px; letter-spacing:2px;
+  color:var(--white); margin-bottom:24px;
+  padding-bottom:12px; border-bottom:1px solid var(--rim);
+}
+.met-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 0;
+  border-bottom:1px solid rgba(21,40,64,.5);
+}
+.met-row:last-child { border-bottom:none; }
+.met-nm { font-size:12px; color:var(--silver); }
+.met-gauge {
+  width:100px; height:4px;
+  background:var(--rim); border-radius:2px; position:relative; overflow:hidden;
+}
+.met-fill {
+  position:absolute;
+  inset:0 auto 0 0;
+  background:linear-gradient(90deg,var(--ultra),var(--cyan));
+  border-radius:2px;
+  animation:gauge-pulse 3s ease-in-out infinite;
+}
+.met-val { font-family:var(--orb); font-size:13px; color:var(--cyan); min-width:46px; text-align:right; }
+@keyframes gauge-pulse {
+  0%,100%{filter:brightness(1)} 50%{filter:brightness(1.3)}
+}
+
+/* ─────────────────────────────────────────────────────────────
+   VOICE
+   ───────────────────────────────────────────────────────────── */
+#voice {
+  background:var(--deep);
+  border-top:1px solid var(--rim);
+  text-align:center;
+}
+.voice-body { max-width:760px; margin:0 auto; }
+
+.wf-wrap {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  height:80px;
+  margin:44px 0;
+}
+.wb {
+  width:3px;
+  border-radius:2px;
+  background:linear-gradient(to top, var(--ultra), var(--cyan));
+  animation:wv var(--dur,1s) ease-in-out infinite;
+  animation-delay:var(--dl,0s);
+}
+@keyframes wv {
+  0%,100%{height:5px;opacity:.25} 50%{height:var(--pk,30px);opacity:1}
+}
+
+.voice-wake {
+  font-family:var(--orb);
+  font-size:32px; font-weight:700;
+  color:var(--cyan);
+  letter-spacing:4px;
+  text-shadow:0 0 40px var(--cyan-glow);
+  margin-bottom:12px;
+}
+.voice-sub {
+  font-size:13px; line-height:1.9;
+  color:var(--silver); max-width:560px; margin:0 auto 36px;
+}
+.vcmds {
+  display:flex; flex-wrap:wrap; gap:10px;
+  justify-content:center; margin-top:32px;
+}
+.vcmd {
+  font-size:11.5px; padding:7px 16px;
+  border:1px solid var(--rim);
+  color:var(--silver); font-family:var(--mono);
+  transition:all .3s; cursor:default;
+}
+.vcmd:hover { border-color:var(--cyan); color:var(--cyan); background:var(--cyan-lo); }
+
+/* ─────────────────────────────────────────────────────────────
+   TECH STACK
+   ───────────────────────────────────────────────────────────── */
+#stack {
+  background:var(--void);
+  border-top:1px solid var(--rim);
+}
+.stack-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:2px;
+  margin-top:52px;
+}
+.st-cat {
+  background:var(--card);
+  border:1px solid var(--rim);
+  padding:26px;
+}
+.st-cat-h {
+  font-family:var(--orb);
+  font-size:10px; letter-spacing:2.5px; color:var(--cyan);
+  margin-bottom:18px;
+  padding-bottom:12px;
+  border-bottom:1px solid var(--rim);
+}
+.st-item {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 0;
+  font-size:12px; color:var(--silver);
+  border-bottom:1px solid rgba(21,40,64,.4);
+}
+.st-item:last-child { border-bottom:none; }
+.st-dot { width:4px; height:4px; border-radius:50%; background:var(--dc,var(--cyan)); flex-shrink:0; }
+
+/* ─────────────────────────────────────────────────────────────
+   ARCHITECTURE
+   ───────────────────────────────────────────────────────────── */
+#arch {
+  background:var(--deep);
+  border-top:1px solid var(--rim);
+}
+.arch-term {
+  background:#000;
+  border:1px solid var(--rim);
+  border-radius:3px;
+  margin-top:52px;
+  overflow:hidden;
+}
+.at-h {
+  display:flex; align-items:center; gap:8px;
+  padding:11px 20px;
+  background:#040404;
+  border-bottom:1px solid var(--rim);
+}
+.at-body {
+  padding:28px 36px;
+  font-size:13px;
+  line-height:2.05;
+}
+.at-body .d { color:var(--cyan); }
+.at-body .f { color:var(--mist); }
+.at-body .c { color:#1E3650; }
+.at-body .h { color:var(--white); }
+.at-body .p { color:#9B72FF; }
+.at-body .o { color:var(--amber); }
+.at-body .a { color:var(--alert); }
+
+/* ─────────────────────────────────────────────────────────────
+   QUICKSTART
+   ───────────────────────────────────────────────────────────── */
+#qs {
+  background:var(--void);
+  border-top:1px solid var(--rim);
+}
+.qs-layout {
+  display:grid;
+  grid-template-columns:1fr 1.1fr;
+  gap:60px;
+  margin-top:52px;
+  align-items:start;
+}
+.qs-steps { display:flex; flex-direction:column; }
+.qs-step {
+  display:flex; gap:22px;
+  padding:26px 0;
+  border-bottom:1px solid var(--rim);
+}
+.qs-step:last-child { border-bottom:none; }
+.qs-n {
+  font-family:var(--orb);
+  font-size:10px; letter-spacing:2px;
+  color:var(--cyan); flex-shrink:0;
+  padding-top:2px; width:24px;
+}
+.qs-ttl { font-family:var(--sans); font-size:15px; font-weight:600; color:var(--white); margin-bottom:7px; }
+.qs-dsc { font-size:12px; line-height:1.75; color:var(--silver); }
+
+.qs-term {
+  background:#000;
+  border:1px solid var(--rim);
+  border-radius:3px;
+  overflow:hidden;
+  position:sticky;
+  top:72px;
+}
+.qt-h { display:flex; align-items:center; gap:8px; padding:11px 18px; background:#040404; border-bottom:1px solid var(--rim); }
+.qt-body { padding:22px 24px; }
+.cl { display:flex; gap:10px; padding:5px 0; }
+.cp { color:var(--cyan); font-size:13px; flex-shrink:0; }
+.ct { color:var(--white); font-size:13px; }
+.co { color:#1E3650; font-size:12px; padding:6px 0 3px; }
+.cx { color:var(--green); font-size:12px; padding:1px 0; }
+
+.blink-cur {
+  display:inline-block;
+  width:7px; height:13px;
+  background:var(--cyan);
+  animation:blk .9s step-end infinite;
+  vertical-align:middle;
+}
+@keyframes blk { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ─────────────────────────────────────────────────────────────
+   FOOTER
+   ───────────────────────────────────────────────────────────── */
+footer {
+  background:#000;
+  border-top:1px solid var(--rim);
+}
+.ft-inner {
+  max-width:1200px;
+  margin:0 auto;
+  padding:32px 44px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:16px;
+}
+.ft-logo {
+  font-family:var(--orb);
+  font-size:14px; letter-spacing:3px;
+  color:var(--silver);
+}
+.ft-logo em { color:var(--cyan); font-style:normal; }
+.ft-st {
+  display:flex; gap:22px; flex-wrap:wrap;
+  font-size:10.5px; color:var(--silver); letter-spacing:1px;
+}
+.ft-sti { display:flex; align-items:center; gap:7px; }
+.ft-dot { width:5px; height:5px; border-radius:50%; background:var(--green); }
+.ft-copy { font-size:10px; color:#1E3650; letter-spacing:.5px; }
+
+/* ─────────────────────────────────────────────────────────────
+   RESPONSIVE
+   ───────────────────────────────────────────────────────────── */
+@media(max-width:960px){
+  .agents-row    { grid-template-columns:1fr 1fr; }
+  .mission-grid  { grid-template-columns:1fr; gap:40px; }
+  .feat-layout   { grid-template-columns:1fr; }
+  .sec-layout    { grid-template-columns:1fr; }
+  .lf-layout     { grid-template-columns:1fr; }
+  .stack-grid    { grid-template-columns:1fr 1fr; }
+  .qs-layout     { grid-template-columns:1fr; }
+  .n-links       { display:none; }
+}
+@media(max-width:600px){
+  .agents-row    { grid-template-columns:1fr; }
+  .feat-grid     { grid-template-columns:1fr; }
+  .stack-grid    { grid-template-columns:1fr; }
+  .m-tiles       { grid-template-columns:1fr; }
+  .si            { padding:80px 24px; }
+  .hero-stats    { flex-wrap:wrap; }
+  .h-stat        { border-right:none; padding:8px 16px; }
+}
+</style>
 </head>
-<body>
-    <!-- Three.js Canvas Container -->
-    <div id="canvas-container"></div>
+<body class="hex-bg">
 
-    <!-- UI Overlay -->
-    <div class="overlay">
-        <nav class="navbar">
-            <div class="logo">ORPHEUS</div>
-            <div class="nav-links">
-                <a href="#" onclick="document.getElementById('modal-features').style.display='flex'; return false;">FEATURES</a>
-                <a href="#" onclick="document.getElementById('modal-about').style.display='flex'; return false;">ABOUT</a>
-                <a href="/login" class="nav-btn glow-effect">ACCESS MATRIX</a>
-            </div>
-        </nav>
+<!-- ═══════════════ BOOT SEQUENCE ═══════════════ -->
+<div id="boot">
+  <div id="boot-wrap"></div>
+  <div id="boot-bar"><div id="boot-bar-fill"></div></div>
+</div>
+<button id="boot-skip" onclick="skipBoot()">SKIP ↓</button>
 
-        <main class="hero">
-            <div class="hero-content">
-                <h2 class="subtitle">// OMNI-RESPONSIVE PROCESSING MATRIX</h2>
-                <h1 class="title">BEYOND <br> <span class="gradient-text">INTELLIGENCE</span></h1>
-                <p class="description">
-                    Step into the next evolution of computational thought. 
-                    Experience the ultimate neural network orchestrator, seamlessly integrating multi-agent AI, local execution, and futuristic holographics.
-                </p>
-                <div class="cta-group">
-                    <a href="/login" class="hero-btn btn btn-primary glow-effect">INITIALIZE MATRIX <span class="arrow">→</span></a>
-                    <a href="https://github.com/Anos-Voldigoad-8" target="_blank" class="btn btn-secondary">VIEW SOURCE</a>
-                </div>
-            </div>
-        </main>
-        
-        <footer class="footer">
-            <p>&copy; 2026 ORPHEUS PROJECT. ALL SYSTEMS NOMINAL.</p>
-        </footer>
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav>
+  <a href="#" class="n-logo">ORP<em>H</em>EUS</a>
+  <ul class="n-links">
+    <li><a href="#mission">System</a></li>
+    <li><a href="#agents">Agents</a></li>
+    <li><a href="#security">Security</a></li>
+    <li><a href="#livefeed">Live Feed</a></li>
+    <li><a href="#stack">Stack</a></li>
+    <li><a href="#qs">Deploy</a></li>
+  </ul>
+  <div class="n-pill"><div class="n-dot"></div>ORPHEUS ONLINE — v2.0.0</div>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section id="hero">
+  <canvas id="c"></canvas>
+  <div class="hero-inner rv">
+    <div class="hero-eye">// SYSTEM STATUS: ALL AGENTS ACTIVE — ENCRYPTION ONLINE</div>
+    <h1 class="hero-h1" data-t="ORPHEUS">ORPHEUS</h1>
+    <div class="hero-sub">Omni-Responsive Processing Matrix v2.0</div>
+    <div class="hero-stats">
+      <div class="h-stat"><span class="h-val">5</span><span class="h-lbl">AI Agents</span></div>
+      <div class="h-stat"><span class="h-val">AES-256</span><span class="h-lbl">Encryption</span></div>
+      <div class="h-stat"><span class="h-val">100%</span><span class="h-lbl">Local Inference</span></div>
+      <div class="h-stat"><span class="h-val">0ms</span><span class="h-lbl">Cloud Latency</span></div>
     </div>
+    <div class="hero-btns">
+      <a href="/app" class="btn btn-p">Initialize System</a>
+      <a href="#agents" class="btn btn-s">View Agents</a>
+    </div>
+  </div>
+  <div class="scroll-hint"><div class="s-line"></div><span>SCROLL</span></div>
+</section>
 
-    <!-- Modals -->
-    <div id="modal-features" class="modal">
-        <div class="modal-content glass">
-            <button class="modal-close" onclick="document.getElementById('modal-features').style.display='none'">✕</button>
-            <h2 class="modal-title">FEATURES</h2>
-            <ul class="feature-list">
-                <li><strong>Multi-Agent Orchestration:</strong> Dynamic delegation to specialized agents.</li>
-                <li><strong>Local Execution:</strong> Sandboxed workspace for File OS & script generation.</li>
-                <li><strong>Fallback Intelligence:</strong> Intelligent fallback chain across Gemini, OpenAI, and Ollama.</li>
-                <li><strong>Holographic Interface:</strong> Real-time neural visualization using Three.js and Canvas.</li>
-            </ul>
+<!-- ═══════════════ MISSION ═══════════════ -->
+<section id="mission">
+  <div class="si">
+    <div class="s-eye rv">// SYSTEM OVERVIEW</div>
+    <h2 class="s-h2 rv">Your Personal JARVIS.<br>Runs Entirely Offline.</h2>
+    <div class="mission-grid">
+      <div class="m-text rv d1">
+        <p>ORPHEUS is a <strong>privacy-first AI command center</strong> built for operators who refuse to surrender control to the cloud. Every computation, every secret, every voice command — runs on <em>your hardware</em>, never theirs.</p>
+        <p>A <strong>multi-agent neural harness</strong> routes your intent through five specialized AI units — Commander, FileOS, WebResearch, Creator, and LLM Core — each operating in its own domain, synchronized through a shared reasoning layer.</p>
+        <p>Speak naturally. Type commands. Issue directives. ORPHEUS processes language, executes file operations, searches the web, generates code, and synthesizes content — all inside a <strong>cryptographically secured sandbox</strong> that is auditable, extensible, and entirely yours.</p>
+      </div>
+      <div class="m-tiles rv d2">
+        <div class="m-tile">
+          <div class="m-tile-val">AES-256</div>
+          <div class="m-tile-txt">Military-grade Fernet encryption on all stored data, logs, and session fields</div>
         </div>
-    </div>
-
-    <div id="modal-about" class="modal">
-        <div class="modal-content glass">
-            <button class="modal-close" onclick="document.getElementById('modal-about').style.display='none'">✕</button>
-            <h2 class="modal-title">ABOUT ORPHEUS</h2>
-            <p style="color: var(--text-muted); line-height: 1.6;">
-                ORPHEUS is the pinnacle of personal AI assistants. Conceived by Anos-Voldigoad-8, it bridges the gap between conversational AI and functional, agentic automation. It does more than just answer questions—it executes intent.
-            </p>
+        <div class="m-tile">
+          <div class="m-tile-val">100%</div>
+          <div class="m-tile-txt">Local inference via Ollama — your data never leaves your machine</div>
         </div>
+        <div class="m-tile">
+          <div class="m-tile-val">5 Units</div>
+          <div class="m-tile-txt">Specialized agents coordinated by the Commander routing layer</div>
+        </div>
+        <div class="m-tile">
+          <div class="m-tile-val">Real-Time</div>
+          <div class="m-tile-txt">WebSocket-powered dashboard with live CPU, RAM and disk telemetry</div>
+        </div>
+      </div>
     </div>
+  </div>
+</section>
 
-    <!-- Login Modal Removed (now on /login) -->
-    
-    <!-- Three.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="/ui/landing.js"></script>
+<!-- ═══════════════ AGENTS ═══════════════ -->
+<section id="agents">
+  <div class="si">
+    <div class="agents-head">
+      <div>
+        <div class="s-eye rv">// NEURAL AGENT NETWORK</div>
+        <h2 class="s-h2 rv">Five Specialized Units.<br>One Unified Mind.</h2>
+      </div>
+      <div class="a-count rv">5 / 5 ACTIVE</div>
+    </div>
+    <div class="agents-row">
+
+      <div class="a-card rv d1" style="--ac:#00E8CC;--ac-lo:rgba(0,232,204,0.06)">
+        <div class="a-ico">🧠</div>
+        <div class="a-unit">UNIT-01</div>
+        <div class="a-name">COMMANDER</div>
+        <div class="a-desc">Central orchestrator that receives, interprets, and routes all incoming commands to the appropriate specialized agent. Master of intent classification and delegation.</div>
+        <div class="a-st"><div class="a-st-dot"></div> ACTIVE</div>
+      </div>
+
+      <div class="a-card rv d2" style="--ac:#6200FF;--ac-lo:rgba(98,0,255,0.06)">
+        <div class="a-ico">📁</div>
+        <div class="a-unit">UNIT-02</div>
+        <div class="a-name">FILE OS</div>
+        <div class="a-desc">Sandboxed file system agent. Reads, writes, organizes, and executes scripts within the user-isolated workspace directory. Zero escape vectors by design.</div>
+        <div class="a-st"><div class="a-st-dot"></div> ACTIVE</div>
+      </div>
+
+      <div class="a-card rv d3" style="--ac:#00A8FF;--ac-lo:rgba(0,168,255,0.06)">
+        <div class="a-ico">🌐</div>
+        <div class="a-unit">UNIT-03</div>
+        <div class="a-name">WEB RESEARCH</div>
+        <div class="a-desc">Autonomous web intelligence. Deploys DuckDuckGo search, scrapes structured data, and synthesizes real-time information into actionable intelligence briefings.</div>
+        <div class="a-st"><div class="a-st-dot"></div> ACTIVE</div>
+      </div>
+
+      <div class="a-card rv d4" style="--ac:#FF8C00;--ac-lo:rgba(255,140,0,0.06)">
+        <div class="a-ico">⚡</div>
+        <div class="a-unit">UNIT-04</div>
+        <div class="a-name">CREATOR</div>
+        <div class="a-desc">Code generation and content synthesis engine. Writes Python scripts, builds functional programs, generates documentation, and creates reports on demand.</div>
+        <div class="a-st"><div class="a-st-dot"></div> ACTIVE</div>
+      </div>
+
+      <div class="a-card rv d5" style="--ac:#FF2B68;--ac-lo:rgba(255,43,104,0.06)">
+        <div class="a-ico">🤖</div>
+        <div class="a-unit">UNIT-05</div>
+        <div class="a-name">LLM CORE</div>
+        <div class="a-desc">Direct neural reasoning interface. Handles conversational AI, complex analysis, summarization, and deep cognition tasks via local Ollama or Gemini 2.0 Flash.</div>
+        <div class="a-st"><div class="a-st-dot"></div> ACTIVE</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FEATURES ═══════════════ -->
+<section id="features">
+  <div class="si">
+    <div class="s-eye rv">// CAPABILITY MATRIX</div>
+    <h2 class="s-h2 rv">Everything You Need.<br>Nothing You Don't.</h2>
+    <div class="feat-layout">
+      <div class="feat-grid">
+        <div class="f-card rv d1" data-num="01">
+          <div class="f-ic">🎙️</div>
+          <div class="f-ttl">Voice Command Interface</div>
+          <div class="f-dsc">Browser-native Web Speech API for Chrome and Edge. Server-side Faster-Whisper STT for enhanced precision. Wake word "Orpheus" triggers processing.</div>
+          <span class="f-badge">✅ Active</span>
+        </div>
+        <div class="f-card rv d2" data-num="02">
+          <div class="f-ic">📊</div>
+          <div class="f-ttl">Holographic Dashboard</div>
+          <div class="f-dsc">Real-time cyberpunk UI served over FastAPI. WebSocket feed broadcasts live CPU, RAM, and disk metrics with agent activity every 2 seconds.</div>
+          <span class="f-badge">✅ Active</span>
+        </div>
+        <div class="f-card rv d3" data-num="03">
+          <div class="f-ic">🔒</div>
+          <div class="f-ttl">Encrypted Black-Box Logs</div>
+          <div class="f-dsc">All system events are double-encrypted via Fernet and stored in SQLite. Voice biometrics stored as SHA-256 hashes only. No plaintext audit trail.</div>
+          <span class="f-badge">✅ Active</span>
+        </div>
+        <div class="f-card rv d4" data-num="04">
+          <div class="f-ic">💬</div>
+          <div class="f-ttl">Neural Chat Interface</div>
+          <div class="f-dsc">Conversational AI with persistent history. REST API via /api/command and real-time WebSocket at /ws. Fully curl-compatible for automation.</div>
+          <span class="f-badge">✅ Active</span>
+        </div>
+      </div>
+      <div class="feat-panel rv d2">
+        <div class="fp-head">PERFORMANCE SPECS</div>
+        <div class="cap-row">
+          <span class="cap-nm">Privacy Rating</span>
+          <div class="cap-bar"><div class="cap-fill" data-w="100"></div></div>
+        </div>
+        <div class="cap-row">
+          <span class="cap-nm">Voice Accuracy</span>
+          <div class="cap-bar"><div class="cap-fill" data-w="92"></div></div>
+        </div>
+        <div class="cap-row">
+          <span class="cap-nm">File Ops Speed</span>
+          <div class="cap-bar"><div class="cap-fill" data-w="96"></div></div>
+        </div>
+        <div class="cap-row">
+          <span class="cap-nm">Agent Routing</span>
+          <div class="cap-bar"><div class="cap-fill" data-w="89"></div></div>
+        </div>
+        <div class="cap-row">
+          <span class="cap-nm">Web Research</span>
+          <div class="cap-bar"><div class="cap-fill" data-w="85"></div></div>
+        </div>
+        <div class="cap-row">
+          <span class="cap-nm">Code Generation</span>
+          <div class="cap-bar"><div class="cap-fill" data-w="81"></div></div>
+        </div>
+        <div class="cap-row">
+          <span class="cap-nm">Encryption</span>
+          <div class="cap-bar"><div class="cap-fill" data-w="100"></div></div>
+        </div>
+        <div class="cap-row">
+          <span class="cap-nm">Response Speed</span>
+          <div class="cap-bar"><div class="cap-fill" data-w="78"></div></div>
+        </div>
+        <div class="fp-lm">
+          <div class="fp-lm-label">// ACTIVE LLM BACKEND</div>
+          <div class="fp-lm-val">Gemini 2.0 Flash · Ollama Local</div>
+          <div class="fp-lm-sub">TinyLlama offline fallback available</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ SECURITY ═══════════════ -->
+<section id="security">
+  <div class="si">
+    <div class="s-eye rv">// SECURITY ARCHITECTURE</div>
+    <h2 class="s-h2 rv">Classified-Grade<br>Protection Stack</h2>
+    <div class="sec-layout">
+
+      <div class="rv d1" style="display:flex;justify-content:center;align-items:center;">
+        <div class="orbit-wrap">
+          <div class="orbit orbit-3"><div class="orbit-satellite"></div></div>
+          <div class="orbit orbit-2"><div class="orbit-satellite"></div></div>
+          <div class="orbit orbit-1"><div class="orbit-satellite"></div></div>
+          <div class="orbit orbit-core">🔐</div>
+        </div>
+      </div>
+
+      <div class="sec-layers rv d2">
+        <div class="s-layer">
+          <div class="s-icon">🔑</div>
+          <div>
+            <div class="s-ttl">AES-256 Fernet Encryption</div>
+            <div class="s-dsc">All user data, database fields, and log files are encrypted at rest using PBKDF2-derived Fernet keys. The master key is never written to disk in plaintext.</div>
+            <span class="s-tag">AES-256 · PBKDF2</span>
+          </div>
+        </div>
+        <div class="s-layer">
+          <div class="s-icon">🎤</div>
+          <div>
+            <div class="s-ttl">Voice Biometric Auth</div>
+            <div class="s-dsc">User voice samples are SHA-256 hashed during enrollment. No raw audio is ever persisted. Identity verification happens against the stored hash only.</div>
+            <span class="s-tag">SHA-256 · BIOMETRIC</span>
+          </div>
+        </div>
+        <div class="s-layer">
+          <div class="s-icon">📦</div>
+          <div>
+            <div class="s-ttl">Sandboxed File Operations</div>
+            <div class="s-dsc">All filesystem writes are strictly contained to user-isolated workspace directories. Dangerous commands are blocked at the harness level before any execution.</div>
+            <span class="s-tag">SANDBOXED · ISOLATED</span>
+          </div>
+        </div>
+        <div class="s-layer">
+          <div class="s-icon">🛡️</div>
+          <div>
+            <div class="s-ttl">Rate-Limited Session Auth</div>
+            <div class="s-dsc">HTTP-only, Secure, SameSite-strict session cookies signed via itsdangerous. Login rate-limited to 5 attempts per IP per 15-minute window to stop brute-force.</div>
+            <span class="s-tag">RATE LIMITED · SIGNED</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ LIVE FEED ═══════════════ -->
+<section id="livefeed">
+  <div class="si">
+    <div class="s-eye rv">// REAL-TIME SYSTEM FEED</div>
+    <h2 class="s-h2 rv">Always Watching.<br>Always Executing.</h2>
+    <div class="lf-layout">
+
+      <div class="lf-terminal rv d1">
+        <div class="lf-th">
+          <div class="td r"></div><div class="td y"></div><div class="td g"></div>
+          <span class="tt">orpheus — live system log</span>
+        </div>
+        <div class="lf-body">
+          <div id="feed-lines"></div>
+        </div>
+      </div>
+
+      <div class="lf-metrics rv d2">
+        <div class="lf-m-title">// SYSTEM TELEMETRY</div>
+        <div class="met-row">
+          <span class="met-nm">CPU Usage</span>
+          <div class="met-gauge"><div class="met-fill" id="cpu-fill" style="width:24%"></div></div>
+          <span class="met-val" id="cpu-val">24%</span>
+        </div>
+        <div class="met-row">
+          <span class="met-nm">RAM Usage</span>
+          <div class="met-gauge"><div class="met-fill" id="ram-fill" style="width:41%"></div></div>
+          <span class="met-val" id="ram-val">41%</span>
+        </div>
+        <div class="met-row">
+          <span class="met-nm">Disk Usage</span>
+          <div class="met-gauge"><div class="met-fill" id="dsk-fill" style="width:58%"></div></div>
+          <span class="met-val" id="dsk-val">58%</span>
+        </div>
+        <div class="met-row">
+          <span class="met-nm">Agent Load</span>
+          <div class="met-gauge"><div class="met-fill" id="agt-fill" style="width:31%"></div></div>
+          <span class="met-val" id="agt-val">31%</span>
+        </div>
+        <div class="met-row">
+          <span class="met-nm">WS Clients</span>
+          <div class="met-gauge"><div class="met-fill" style="width:20%"></div></div>
+          <span class="met-val" id="ws-val">1</span>
+        </div>
+        <div class="met-row">
+          <span class="met-nm">Enc. Ops/s</span>
+          <div class="met-gauge"><div class="met-fill" style="width:66%"></div></div>
+          <span class="met-val">128</span>
+        </div>
+        <div class="met-row">
+          <span class="met-nm">Voice Queue</span>
+          <div class="met-gauge"><div class="met-fill" style="width:8%"></div></div>
+          <span class="met-val">0 cmds</span>
+        </div>
+        <div class="met-row">
+          <span class="met-nm">Uptime</span>
+          <div class="met-gauge"><div class="met-fill" style="width:78%;background:linear-gradient(90deg,#00FF88,#00E8CC)"></div></div>
+          <span class="met-val" id="up-val" style="font-size:11px">2h 14m</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ VOICE ═══════════════ -->
+<section id="voice">
+  <div class="si">
+    <div class="voice-body">
+      <div class="s-eye rv">// VOICE COMMAND INTERFACE</div>
+      <h2 class="s-h2 rv">Speak. It Listens.<br>It Executes.</h2>
+
+      <div class="wf-wrap rv" id="wf"></div>
+
+      <div class="voice-wake rv">ORPHEUS</div>
+      <div class="voice-sub rv">
+        Say the wake word followed by any natural language command. Chrome and Edge support browser-native recognition. Faster-Whisper handles server-side precision transcription.
+      </div>
+      <div class="vcmds rv">
+        <span class="vcmd">"search latest AI research papers"</span>
+        <span class="vcmd">"read file notes.txt"</span>
+        <span class="vcmd">"list workspace files"</span>
+        <span class="vcmd">"write a Python fibonacci script"</span>
+        <span class="vcmd">"explain quantum computing"</span>
+        <span class="vcmd">"create a project report"</span>
+        <span class="vcmd">"check system status"</span>
+        <span class="vcmd">"summarize web results on fusion energy"</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ STACK ═══════════════ -->
+<section id="stack">
+  <div class="si">
+    <div class="s-eye rv">// TECHNOLOGY MATRIX</div>
+    <h2 class="s-h2 rv">Battle-Tested<br>Infrastructure</h2>
+    <div class="stack-grid">
+
+      <div class="st-cat rv d1">
+        <div class="st-cat-h">// BACKEND</div>
+        <div class="st-item"><div class="st-dot"></div>Python 3.11+</div>
+        <div class="st-item"><div class="st-dot"></div>FastAPI 0.111+</div>
+        <div class="st-item"><div class="st-dot"></div>Uvicorn ASGI</div>
+        <div class="st-item"><div class="st-dot"></div>WebSocket Protocol</div>
+        <div class="st-item"><div class="st-dot"></div>SQLAlchemy 2.0 ORM</div>
+        <div class="st-item"><div class="st-dot"></div>Pydantic v2</div>
+        <div class="st-item"><div class="st-dot"></div>itsdangerous sessions</div>
+      </div>
+
+      <div class="st-cat rv d2">
+        <div class="st-cat-h">// AI & INFERENCE</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--ultra)"></div>Ollama (local LLM)</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--ultra)"></div>Gemini 2.0 Flash</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--ultra)"></div>LangChain / LangGraph</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--ultra)"></div>LlamaIndex 0.10</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--ultra)"></div>ChromaDB (vector)</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--ultra)"></div>PyAutoGen</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--ultra)"></div>TinyLlama fallback</div>
+      </div>
+
+      <div class="st-cat rv d3">
+        <div class="st-cat-h">// SECURITY</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--alert)"></div>Cryptography / Fernet</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--alert)"></div>AES-256 / PBKDF2</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--alert)"></div>bcrypt password hashing</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--alert)"></div>SHA-256 biometrics</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--alert)"></div>Rate-limited auth (5/15m)</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--alert)"></div>CORS middleware</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--alert)"></div>SQLite encrypted fields</div>
+      </div>
+
+      <div class="st-cat rv d4">
+        <div class="st-cat-h">// INTERFACE</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--amber)"></div>Vanilla JS + Canvas API</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--amber)"></div>Web Speech API (STT/TTS)</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--amber)"></div>Faster-Whisper (server)</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--amber)"></div>Coqui TTS voice engine</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--amber)"></div>psutil system monitoring</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--amber)"></div>DuckDuckGo search API</div>
+        <div class="st-item"><div class="st-dot" style="--dc:var(--amber)"></div>ReportLab PDF generator</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ ARCHITECTURE ═══════════════ -->
+<section id="arch">
+  <div class="si">
+    <div class="s-eye rv">// SYSTEM ARCHITECTURE</div>
+    <h2 class="s-h2 rv">Engineered for Control.<br>Built to Scale.</h2>
+    <div class="arch-term rv d1">
+      <div class="at-h">
+        <div class="td r"></div><div class="td y"></div><div class="td g"></div>
+        <span class="tt">orpheus/ — directory tree</span>
+      </div>
+      <div class="at-body" id="arch-body"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ QUICKSTART ═══════════════ -->
+<section id="qs">
+  <div class="si">
+    <div class="s-eye rv">// DEPLOYMENT PROTOCOL</div>
+    <h2 class="s-h2 rv">Online in Four<br>Commands.</h2>
+    <div class="qs-layout">
+
+      <div class="qs-steps">
+        <div class="qs-step rv d1">
+          <div class="qs-n">01</div>
+          <div>
+            <div class="qs-ttl">Clone & Install</div>
+            <div class="qs-dsc">Clone the repo and install Python dependencies. Python 3.11+ required. PyAudio and Coqui TTS need system libraries (PortAudio, C++ build tools) on some platforms.</div>
+          </div>
+        </div>
+        <div class="qs-step rv d2">
+          <div class="qs-n">02</div>
+          <div>
+            <div class="qs-ttl">Configure Environment</div>
+            <div class="qs-dsc">Copy .env.template to .env. Set your LLM provider (Gemini / OpenAI / Ollama), generate your ORPHEUS_MASTER_KEY, and supply any optional API keys for web search.</div>
+          </div>
+        </div>
+        <div class="qs-step rv d3">
+          <div class="qs-n">03</div>
+          <div>
+            <div class="qs-ttl">Voice Enrollment</div>
+            <div class="qs-dsc">Run intial_setup.py to enroll your voice biometric profile and initialize the encrypted SQLite database. One-time setup — creates your Commander identity.</div>
+          </div>
+        </div>
+        <div class="qs-step rv d4">
+          <div class="qs-n">04</div>
+          <div>
+            <div class="qs-ttl">Launch ORPHEUS</div>
+            <div class="qs-dsc">Start main.py. FastAPI binds to port 8000. Your browser opens automatically. All five agents come online. The dashboard goes live. ORPHEUS is awake.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="qs-term rv d2">
+        <div class="qt-h">
+          <div class="td r"></div><div class="td y"></div><div class="td g"></div>
+          <span class="tt">bash — deployment sequence</span>
+        </div>
+        <div class="qt-body">
+          <div class="co"># 01 — Clone &amp; Install</div>
+          <div class="cl"><span class="cp">$</span><span class="ct">git clone https://github.com/YOUR/ORPHEUS.git</span></div>
+          <div class="cl"><span class="cp">$</span><span class="ct">cd ORPHEUS &amp;&amp; pip install -r requirements.txt</span></div>
+          <br>
+          <div class="co"># 02 — Configure environment</div>
+          <div class="cl"><span class="cp">$</span><span class="ct">cp .env.template .env</span></div>
+          <div class="cl"><span class="cp">$</span><span class="ct">nano .env  # set keys, LLM provider</span></div>
+          <br>
+          <div class="co"># 03 — Enroll voice biometrics</div>
+          <div class="cl"><span class="cp">$</span><span class="ct">python intial_setup.py</span></div>
+          <div class="cx">  [SUCCESS] User 'Commander' enrolled.</div>
+          <div class="cx">  [INFO] Voice Profile Hash: SHA256:a1b2c3...</div>
+          <br>
+          <div class="co"># 04 — Launch ORPHEUS</div>
+          <div class="cl"><span class="cp">$</span><span class="ct">python main.py</span></div>
+          <div class="cx">  ✅ Agent Harness initialized.</div>
+          <div class="cx">  🎙️  Voice Module online. Wake word: Orpheus</div>
+          <div class="cx">  🌐  ORPHEUS live → http://localhost:8000</div>
+          <span class="blink-cur"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer>
+  <div class="ft-inner">
+    <div class="ft-logo">ORP<em>H</em>EUS <span style="color:#1E3650;font-size:10px;letter-spacing:1px;">v2.0.0</span></div>
+    <div class="ft-st">
+      <div class="ft-sti"><div class="ft-dot"></div>All Systems Nominal</div>
+      <div class="ft-sti"><div class="ft-dot" style="background:var(--cyan)"></div>Agents Online</div>
+      <div class="ft-sti"><div class="ft-dot" style="background:var(--ultra)"></div>Encryption Active</div>
+    </div>
+    <div class="ft-copy">PRIVATE PROJECT · ALL RIGHTS RESERVED</div>
+  </div>
+</footer>
+
+<!-- ═══════════════ SCRIPTS ═══════════════ -->
+<script>
+/* ─── BOOT ─── */
+const BOOT = [
+  ['╔══════════════════════════════════════════════════╗','hdr'],
+  ['║  ORPHEUS v2.0 — INITIALIZATION SEQUENCE          ║','hdr'],
+  ['║  Omni-Responsive Processing Matrix               ║','hdr'],
+  ['╚══════════════════════════════════════════════════╝','hdr'],
+  ['','dim'],
+  ['[SYS]  Mounting encrypted filesystem...            ','ok'],
+  ['[SYS]  Deriving AES-256 key (PBKDF2, 200k iter)...','ok'],
+  ['[DB]   Initializing SQLite encrypted database...   ','ok'],
+  ['[DB]   Loading session manager...                  ','ok'],
+  ['','dim'],
+  ['[AGT]  Spinning up COMMANDER  (Unit-01)...         ','ok'],
+  ['[AGT]  Spinning up FILE OS    (Unit-02)...         ','ok'],
+  ['[AGT]  Spinning up WEB-SEARCH (Unit-03)...         ','ok'],
+  ['[AGT]  Spinning up CREATOR    (Unit-04)...         ','ok'],
+  ['[AGT]  Spinning up LLM CORE   (Unit-05)...         ','ok'],
+  ['','dim'],
+  ['[VOICE] Loading Faster-Whisper STT engine...       ','ok'],
+  ['[VOICE] Coqui TTS initialized. Model: default      ','ok'],
+  ['[VOICE] Wake word "Orpheus" — registered.          ','ok'],
+  ['','dim'],
+  ['[NET]  FastAPI binding 0.0.0.0:8000...             ','ok'],
+  ['[NET]  WebSocket hub online. Clients: 0            ','ok'],
+  ['[NET]  Dashboard served at /app                    ','ok'],
+  ['','dim'],
+  ['██  ALL SYSTEMS ONLINE — ORPHEUS IS AWAKE  ██      ','done'],
+];
+
+let bootActive = true;
+const bw = document.getElementById('boot-wrap');
+const bf = document.getElementById('boot-bar-fill');
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+async function runBoot(){
+  for(let i=0;i<BOOT.length;i++){
+    if(!bootActive) return;
+    const [text,cls] = BOOT[i];
+    const el = document.createElement('div');
+    el.className = 'bl ' + cls;
+    bw.appendChild(el);
+    // Type chars
+    for(let c=0;c<text.length;c++){
+      if(!bootActive) return;
+      el.textContent += text[c];
+      if(text.length>5) await sleep(text.length > 30 ? 14 : 22);
+    }
+    bf.style.width = ((i+1)/BOOT.length*100) + '%';
+    await sleep(i%5===4 ? 80 : 35);
+  }
+  await sleep(500);
+  if(bootActive) finishBoot();
+}
+
+function finishBoot(){
+  bootActive = false;
+  const boot = document.getElementById('boot');
+  boot.classList.add('exiting');
+  document.getElementById('boot-skip').style.display='none';
+  setTimeout(()=>{
+    boot.style.display='none';
+    afterBoot();
+  }, 600);
+}
+
+function skipBoot(){ finishBoot(); }
+
+function afterBoot(){
+  initReveal();
+  // Show hero immediately
+  document.querySelectorAll('#hero .rv').forEach(e=>{
+    e.classList.add('in');
+  });
+}
+
+setTimeout(runBoot, 120);
+
+/* ─── NEURAL CANVAS ─── */
+(function(){
+  const cv = document.getElementById('c');
+  const cx = cv.getContext('2d');
+  let W, H, nodes, particles = [], packets = [], frame = 0;
+
+  const AGENT_COLORS = ['#00E8CC','#6200FF','#00A8FF','#FF8C00','#FF2B68'];
+
+  function resize(){
+    W = cv.width  = cv.offsetWidth;
+    H = cv.height = cv.offsetHeight;
+    buildNodes();
+  }
+
+  function buildNodes(){
+    const ccx = W/2, ccy = H/2;
+    const r = Math.min(W,H) * 0.26;
+    nodes = [{ x:ccx, y:ccy, color:'#00E8CC', r:10, label:'ORΨ', pulse:0 }];
+    AGENT_COLORS.forEach((col,i)=>{
+      const angle = (i/5)*Math.PI*2 - Math.PI/2;
+      nodes.push({ x:ccx+Math.cos(angle)*r, y:ccy+Math.sin(angle)*r, color:col, r:5.5, label:['CMD','FOS','WEB','CRE','LLM'][i], pulse:Math.random()*Math.PI*2 });
+    });
+  }
+
+  // Particles
+  for(let i=0;i<100;i++){
+    particles.push({
+      x:Math.random(), y:Math.random(),
+      vx:(Math.random()-.5)*0.00025, vy:(Math.random()-.5)*0.00025,
+      sz:Math.random()*1.4+.4,
+      op:Math.random()*.35+.05,
+      col:AGENT_COLORS[Math.floor(Math.random()*5)]
+    });
+  }
+
+  setInterval(()=>{
+    if(!nodes) return;
+    const from = nodes[Math.floor(Math.random()*5)+1];
+    packets.push({ x:from.x, y:from.y, tx:nodes[0].x, ty:nodes[0].y, t:0, spd:.007+Math.random()*.006, col:from.color });
+  }, 550);
+
+  function draw(){
+    requestAnimationFrame(draw);
+    if(!nodes || W===0) return;
+    frame++;
+    cx.clearRect(0,0,W,H);
+
+    // Radial fog
+    const g = cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*.55);
+    g.addColorStop(0,'rgba(9,20,34,.4)');
+    g.addColorStop(1,'rgba(0,5,8,0)');
+    cx.fillStyle=g; cx.fillRect(0,0,W,H);
+
+    // Particles
+    particles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=1; if(p.x>1)p.x=0;
+      if(p.y<0)p.y=1; if(p.y>1)p.y=0;
+      cx.beginPath();
+      cx.arc(p.x*W,p.y*H,p.sz,0,Math.PI*2);
+      cx.fillStyle=p.col+Math.round(p.op*255).toString(16).padStart(2,'0');
+      cx.fill();
+    });
+
+    // Lines hub ↔ agents
+    nodes.slice(1).forEach(n=>{
+      const hub=nodes[0];
+      const op=.1+Math.sin(frame*.018+nodes.indexOf(n))*.05;
+      cx.beginPath(); cx.moveTo(hub.x,hub.y); cx.lineTo(n.x,n.y);
+      cx.strokeStyle=n.color+Math.round(op*255).toString(16).padStart(2,'0');
+      cx.lineWidth=.8; cx.stroke();
+    });
+
+    // Packets
+    for(let i=packets.length-1;i>=0;i--){
+      const p=packets[i];
+      p.t+=p.spd;
+      if(p.t>=1){ packets.splice(i,1); continue; }
+      const px=p.x+(p.tx-p.x)*p.t, py=p.y+(p.ty-p.y)*p.t;
+      cx.beginPath(); cx.arc(px,py,3.5,0,Math.PI*2);
+      cx.fillStyle=p.col;
+      cx.shadowColor=p.col; cx.shadowBlur=12;
+      cx.fill();
+      cx.shadowBlur=0;
+    }
+
+    // Nodes
+    nodes.forEach((n,i)=>{
+      n.pulse+=.035;
+      const sc=1+Math.sin(n.pulse)*.14;
+      // Glow halo
+      const gr=cx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*5*sc);
+      gr.addColorStop(0,n.color+'33'); gr.addColorStop(1,'transparent');
+      cx.fillStyle=gr; cx.beginPath(); cx.arc(n.x,n.y,n.r*5*sc,0,Math.PI*2); cx.fill();
+      // Core circle
+      cx.beginPath(); cx.arc(n.x,n.y,n.r*sc,0,Math.PI*2);
+      if(i===0){ cx.fillStyle=n.color; }
+      else { cx.fillStyle='rgba(0,5,8,.85)'; cx.strokeStyle=n.color; cx.lineWidth=1.5; cx.stroke(); }
+      cx.fill();
+      // Label
+      cx.fillStyle=n.color;
+      cx.font=`${i===0?10:9}px 'IBM Plex Mono'`;
+      cx.textAlign='center';
+      cx.fillText(n.label, n.x, n.y+n.r*2.8+7);
+    });
+  }
+
+  resize();
+  window.addEventListener('resize',resize);
+  draw();
+})();
+
+/* ─── WAVEFORM ─── */
+(function(){
+  const wf = document.getElementById('wf');
+  const peaks = [6,8,14,22,36,50,42,28,18,12,8,6,10,18,30,45,55,48,36,22,14,10,8,14,22,36,48,55,45,30,18,10,8,6,12,28,42,50,35,20,12,8,6,4,6,8,10,8];
+  for(let i=0;i<48;i++){
+    const b=document.createElement('div');
+    b.className='wb';
+    b.style.setProperty('--pk',peaks[i%peaks.length]+'px');
+    b.style.setProperty('--dur',(0.7+Math.random()*.9)+'s');
+    b.style.setProperty('--dl',(i*.038)+'s');
+    wf.appendChild(b);
+  }
+})();
+
+/* ─── ARCHITECTURE TREE ─── */
+(function(){
+  const lines = [
+    ['<span class="d">ORPHEUS/</span>',''],
+    ['<span class="c">│</span>',''],
+    ['<span class="c">├──</span> <span class="h">main.py</span>','<span class="c">        # FastAPI orchestrator · WebSocket hub · lifespan</span>'],
+    ['<span class="c">│</span>',''],
+    ['<span class="c">├──</span> <span class="d">agents/</span>',''],
+    ['<span class="c">│   └──</span> <span class="h">harness.py</span>','<span class="c">     # Multi-agent router (Commander → all units)</span>'],
+    ['<span class="c">│</span>',''],
+    ['<span class="c">├──</span> <span class="d">core/</span>',''],
+    ['<span class="c">│   ├──</span> <span class="h">security.py</span>','<span class="c">    # AES-256 Fernet · voice biometrics · SHA-256</span>'],
+    ['<span class="c">│   └──</span> <span class="h">db.py</span>','<span class="c">          # ORM user mgmt · session tokens · bcrypt</span>'],
+    ['<span class="c">│</span>',''],
+    ['<span class="c">├──</span> <span class="d">voice/</span>',''],
+    ['<span class="c">│   └──</span> <span class="h">module.py</span>','<span class="c">      # Faster-Whisper STT · Coqui TTS · wake word</span>'],
+    ['<span class="c">│</span>',''],
+    ['<span class="c">├──</span> <span class="d">ui/</span>',''],
+    ['<span class="c">│   ├──</span> <span class="f">index.html</span>','<span class="c">     # Cyberpunk holographic dashboard</span>'],
+    ['<span class="c">│   ├──</span> <span class="f">styles.css</span>','<span class="c">     # Futuristic design system</span>'],
+    ['<span class="c">│   ├──</span> <span class="f">app.js</span>','<span class="c">         # WebSocket client · command interface</span>'],
+    ['<span class="c">│   └──</span> <span class="f">particles.js</span>','<span class="c">   # Neural particle canvas visualization</span>'],
+    ['<span class="c">│</span>',''],
+    ['<span class="c">├──</span> <span class="d">database/</span>','<span class="c">          # Encrypted SQLite (AES-256 field-level)</span>'],
+    ['<span class="c">├──</span> <span class="d">workspace/</span>','<span class="c">         # User-isolated sandboxed file operations</span>'],
+    ['<span class="c">├──</span> <span class="d">logs/</span>','<span class="c">              # Double-encrypted audit trail (Fernet+DB)</span>'],
+    ['<span class="c">│</span>',''],
+    ['<span class="c">├──</span> <span class="o">.env</span>','<span class="c">               # 🔒 All secrets — never committed to git</span>'],
+    ['<span class="c">├──</span> <span class="f">.env.template</span>','<span class="c">      # Configuration blueprint</span>'],
+    ['<span class="c">└──</span> <span class="f">requirements.txt</span>','<span class="c">   # Full dependency manifest</span>'],
+  ];
+
+  const body = document.getElementById('arch-body');
+  lines.forEach(([main,comment])=>{
+    const row = document.createElement('div');
+    row.innerHTML = main + comment;
+    body.appendChild(row);
+  });
+})();
+
+/* ─── LIVE FEED SIMULATION ─── */
+(function(){
+  const container = document.getElementById('feed-lines');
+  const entries = [
+    ['BOOT','Encrypted filesystem mounted successfully','ok'],
+    ['DB','SQLite session manager initialized','ok'],
+    ['AGT','Commander unit ready — awaiting directives','ok'],
+    ['NET','WebSocket client connected (127.0.0.1)','info'],
+    ['CMD','Received: "search latest transformer papers"','cmd'],
+    ['WEB','DuckDuckGo query dispatched: 5 results','info'],
+    ['AGT','WebResearch synthesis complete (1.2s)','ok'],
+    ['VOICE','Wake word detected — Orpheus activated','info'],
+    ['CMD','Received: "list workspace files"','cmd'],
+    ['FOS','Workspace scan: 14 files returned','ok'],
+    ['ENC','AES-256 log entry sealed — 0.003ms','ok'],
+    ['DB','Session renewed: lakshyasrivastava811@gmail.com','info'],
+    ['AGT','Creator unit: Python script generated (38 lines)','ok'],
+    ['MET','CPU: 24% · RAM: 41% · Disk: 58%','info'],
+    ['VOICE','TTS response dispatched — 0.8s latency','ok'],
+    ['CMD','Received: "explain quantum entanglement"','cmd'],
+    ['LLM','Gemini 2.0 Flash invoked — streaming...','info'],
+    ['LLM','Response complete (312 tokens, 2.1s)','ok'],
+    ['NET','Metrics broadcast → 1 client','info'],
+    ['SEC','Rate-limit check passed (0/5 attempts)','ok'],
+  ];
+
+  let idx=0, runFeed=false;
+
+  function addLine(){
+    if(!runFeed) return;
+    const [src,msg,type] = entries[idx%entries.length];
+    idx++;
+    const now = new Date();
+    const ts = now.toTimeString().slice(0,8);
+    const div = document.createElement('div');
+    div.className='feed-line';
+    div.innerHTML=`<span class="fl-ts">${ts}</span><span class="fl-src">[${src}]</span><span class="fl-${type}">${msg}</span>`;
+    container.appendChild(div);
+    // Keep max ~20 lines
+    while(container.children.length > 22) container.removeChild(container.firstChild);
+    setTimeout(addLine, 800+Math.random()*1200);
+  }
+
+  // Start feed when section in view
+  const obs = new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting && !runFeed){
+      runFeed=true;
+      addLine();
+    }
+  },{threshold:.1});
+  const sec = document.getElementById('livefeed');
+  if(sec) obs.observe(sec);
+})();
+
+/* ─── METRICS ANIMATION ─── */
+(function(){
+  const metrics = [
+    { fill:'cpu-fill', val:'cpu-val', base:18, amp:14, unit:'%' },
+    { fill:'ram-fill', val:'ram-val', base:36, amp:12, unit:'%' },
+    { fill:'dsk-fill', val:'dsk-val', base:55, amp:5,  unit:'%' },
+    { fill:'agt-fill', val:'agt-val', base:20, amp:22, unit:'%' },
+  ];
+  let start = Date.now();
+
+  function tick(){
+    const t = (Date.now()-start)/1000;
+    metrics.forEach(m=>{
+      const v = Math.round(m.base + Math.sin(t*.4+m.base)*m.amp);
+      const f = document.getElementById(m.fill);
+      const lbl = document.getElementById(m.val);
+      if(f) f.style.width = v + '%';
+      if(lbl) lbl.textContent = v + m.unit;
+    });
+    // Uptime
+    const ups = document.getElementById('up-val');
+    if(ups){
+      const s = Math.floor((Date.now()-start)/1000) + 8040; // fake running time
+      const h = Math.floor(s/3600), m = Math.floor((s%3600)/60);
+      ups.textContent = `${h}h ${m}m`;
+    }
+    requestAnimationFrame(tick);
+  }
+  tick();
+})();
+
+/* ─── SCROLL REVEAL ─── */
+function initReveal(){
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting) e.target.classList.add('in');
+    });
+  },{threshold:0.08});
+  document.querySelectorAll('.rv').forEach(el=>obs.observe(el));
+
+  // Animate capability bars when in view
+  const barObs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.querySelectorAll('.cap-fill').forEach(f=>{
+          f.style.width = f.dataset.w + '%';
+        });
+        barObs.unobserve(e.target);
+      }
+    });
+  },{threshold:.3});
+  const fp = document.querySelector('.feat-panel');
+  if(fp) barObs.observe(fp);
+}
+
+// If boot is skipped very quickly, ensure reveal still runs
+setTimeout(()=>{
+  if(document.getElementById('boot').style.display==='none' || !bootActive){
+    // already done
+  }
+},5000);
+</script>
 </body>
 </html>
