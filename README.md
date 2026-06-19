@@ -1,7 +1,7 @@
 # 🔮 ORPHEUS — Omni-Responsive Processing Matrix
 
 > *A futuristic, privacy-first AI command center — your personal JARVIS.*
-> *The Primary Purpose Of This AI is Holistic User Support for example System Monitor, AI chat System and more...*
+> *The Primary Purpose Of This AI is Holistic User Support for example System Monitor, AI chat System, And this can work Offline as well and more...*
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?style=flat-square&logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-green?style=flat-square&logo=fastapi)
