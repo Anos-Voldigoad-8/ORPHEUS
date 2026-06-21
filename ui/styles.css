@@ -213,17 +213,20 @@ body {
   height: 8px;
   border-radius: 50%;
   background: var(--green);
+  color: var(--green);
   box-shadow: 0 0 8px var(--green-glow);
-  animation: statusPulse 2s ease-in-out infinite;
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
 .status-indicator.offline {
   background: var(--red);
+  color: var(--red);
   box-shadow: 0 0 8px var(--red-glow);
 }
 
 .status-indicator.connecting {
   background: var(--amber);
+  color: var(--amber);
   animation: statusBlink 1s ease-in-out infinite;
 }
 
