@@ -342,14 +342,27 @@
   function updateMetrics(metrics) {
     state.metrics = { ...state.metrics, ...metrics };
 
-    const setValue = (id, value) => {
+    const setValue = (id, value, rawNum) => {
       const el = document.getElementById(id);
-      if (el) el.textContent = value;
+      if (el) {
+        el.textContent = value;
+        const card = el.closest('.stat-card');
+        if (card && rawNum !== undefined) {
+          card.classList.remove('healthy', 'warning', 'critical');
+          if (rawNum <= 50) card.classList.add('healthy');
+          else if (rawNum <= 80) card.classList.add('warning');
+          else card.classList.add('critical');
+        }
+      }
     };
 
-    setValue('metric-cpu', `${parseFloat(metrics.cpu || 0).toFixed(1)}%`);
-    setValue('metric-ram', `${parseFloat(metrics.ram || 0).toFixed(1)}%`);
-    setValue('metric-disk', `${parseFloat(metrics.disk || 0).toFixed(1)}%`);
+    const cpu = parseFloat(metrics.cpu || 0);
+    const ram = parseFloat(metrics.ram || 0);
+    const disk = parseFloat(metrics.disk || 0);
+
+    setValue('metric-cpu', `${cpu.toFixed(1)}%`, cpu);
+    setValue('metric-ram', `${ram.toFixed(1)}%`, ram);
+    setValue('metric-disk', `${disk.toFixed(1)}%`, disk);
     setValue('metric-uptime', metrics.uptime || '—');
 
     // Update sub-text
