@@ -213,17 +213,20 @@ body {
   height: 8px;
   border-radius: 50%;
   background: var(--green);
+  color: var(--green);
   box-shadow: 0 0 8px var(--green-glow);
-  animation: statusPulse 2s ease-in-out infinite;
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
 .status-indicator.offline {
   background: var(--red);
+  color: var(--red);
   box-shadow: 0 0 8px var(--red-glow);
 }
 
 .status-indicator.connecting {
   background: var(--amber);
+  color: var(--amber);
   animation: statusBlink 1s ease-in-out infinite;
 }
 
@@ -245,11 +248,34 @@ body {
 
 .header__clock {
   font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: var(--cyan);
-  letter-spacing: 2px;
-  min-width: 80px;
-  text-align: right;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 3px;
+  min-width: 110px;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.25), rgba(168, 85, 247, 0.25));
+  padding: 8px 24px;
+  border-radius: 0 0 16px 16px;
+  border: 1px solid var(--cyan);
+  border-top: none;
+  box-shadow: 0 4px 15px var(--cyan-glow);
+  animation: clock-pulse 2s ease-in-out infinite;
+  margin-left: 40px;
+  transform: translateY(-10px);
+}
+
+@keyframes clock-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px var(--cyan-glow);
+    border-color: var(--cyan-glow);
+    text-shadow: 0 0 5px var(--cyan-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--cyan), 0 0 40px var(--cyan-glow);
+    border-color: var(--cyan);
+    text-shadow: 0 0 15px var(--cyan);
+  }
 }
 
 /* ── Sidebar ── */
