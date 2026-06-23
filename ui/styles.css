@@ -250,16 +250,19 @@ body {
   font-family: var(--font-mono);
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--cyan);
+  color: #ffffff;
   letter-spacing: 3px;
-  min-width: 100px;
+  min-width: 110px;
   text-align: center;
-  background: rgba(0, 229, 255, 0.1);
-  padding: 4px 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--cyan-glow);
-  box-shadow: 0 0 10px var(--cyan-glow);
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.25), rgba(168, 85, 247, 0.25));
+  padding: 8px 24px;
+  border-radius: 0 0 16px 16px;
+  border: 1px solid var(--cyan);
+  border-top: none;
+  box-shadow: 0 4px 15px var(--cyan-glow);
   animation: clock-pulse 2s ease-in-out infinite;
+  margin-left: 40px;
+  transform: translateY(-10px);
 }
 
 @keyframes clock-pulse {
