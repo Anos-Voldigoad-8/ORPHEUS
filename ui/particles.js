@@ -39,8 +39,8 @@ class ParticleSystem {
     this.particles = [];
     this.signals = [];
     
-    // Create more particles for a denser neural net
-    const count = Math.min(150, Math.floor((this.width * this.height) / 2000));
+    // Create fewer particles for a lighter neural net
+    const count = Math.min(80, Math.floor((this.width * this.height) / 4000));
 
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -232,9 +232,9 @@ class ParticleSystem {
 
     // --- 3. Update & Draw Connections (Network Topology) ---
     // Recalculate connections occasionally for performance
-    if (this.frameCount % 10 === 0) {
+    if (this.frameCount % 20 === 0) {
       this.particles.forEach(p => p.connections = []);
-      const maxDist = 110;
+      const maxDist = 100;
       for (let i = 0; i < this.particles.length; i++) {
         for (let j = i + 1; j < this.particles.length; j++) {
           const dx = this.particles[i].x - this.particles[j].x;
@@ -264,15 +264,9 @@ class ParticleSystem {
         this.ctx.moveTo(p1.x, p1.y);
         this.ctx.lineTo(p2.x, p2.y);
         
-        // Gradient connection
-        const grad = this.ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+        // Simplified solid color connection for performance
         const p1Hue = p1.hue === 185 ? primaryHue : secondaryHue;
-        const p2Hue = p2.hue === 185 ? primaryHue : secondaryHue;
-        
-        grad.addColorStop(0, `hsla(${p1Hue}, 80%, 60%, ${opacity})`);
-        grad.addColorStop(1, `hsla(${p2Hue}, 80%, 60%, ${opacity})`);
-        
-        this.ctx.strokeStyle = grad;
+        this.ctx.strokeStyle = `hsla(${p1Hue}, 80%, 60%, ${opacity})`;
         this.ctx.stroke();
       }
     }
