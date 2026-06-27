@@ -250,32 +250,16 @@ body {
   font-family: var(--font-mono);
   font-size: 1.1rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--cyan);
   letter-spacing: 3px;
   min-width: 110px;
   text-align: center;
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.25), rgba(168, 85, 247, 0.25));
-  padding: 8px 24px;
-  border-radius: 0 0 16px 16px;
-  border: 1px solid var(--cyan);
-  border-top: none;
-  box-shadow: 0 4px 15px var(--cyan-glow);
-  animation: clock-pulse 2s ease-in-out infinite;
-  margin-left: 40px;
-  transform: translateY(-10px);
-}
-
-@keyframes clock-pulse {
-  0%, 100% {
-    box-shadow: 0 0 10px var(--cyan-glow);
-    border-color: var(--cyan-glow);
-    text-shadow: 0 0 5px var(--cyan-glow);
-  }
-  50% {
-    box-shadow: 0 0 20px var(--cyan), 0 0 40px var(--cyan-glow);
-    border-color: var(--cyan);
-    text-shadow: 0 0 15px var(--cyan);
-  }
+  background: rgba(0, 229, 255, 0.05);
+  padding: 6px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-accent);
+  box-shadow: 0 0 10px var(--cyan-glow);
+  margin-left: 20px;
 }
 
 /* ── Sidebar ── */
