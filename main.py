@@ -776,7 +776,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if msg_type == "command":
                 command = data.get("command", "").strip()
-                if not command:
+                attachment = data.get("attachment")
+                if not command and not attachment:
                     continue
 
                 logger.info(f"WS Command: '{command}'")
@@ -806,8 +807,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     
                     try:
                         # Run in thread to avoid blocking
+                        from functools import partial
+                        func = partial(harness.execute_command, command, attachment=attachment)
                         result = await asyncio.get_event_loop().run_in_executor(
-                            None, harness.execute_command, command
+                            None, func
                         )
                     except Exception as e:
                         result = f"Error: {str(e)}"

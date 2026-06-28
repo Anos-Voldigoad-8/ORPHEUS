@@ -250,7 +250,17 @@
 
           <!-- Chat Input -->
           <div class="chat-input-area">
+            <div class="attachment-preview" id="attachment-preview" style="display: none;">
+              <span class="attachment-preview__icon" id="attachment-icon">📄</span>
+              <span class="attachment-preview__name" id="attachment-name">filename.txt</span>
+              <span class="attachment-preview__size" id="attachment-size">(1.2MB)</span>
+              <button class="attachment-preview__remove" id="btn-remove-attachment" title="Remove attachment">✖</button>
+            </div>
             <div class="chat-input-wrapper">
+              <input type="file" id="chat-file-input" style="display: none;">
+              <button class="btn-icon btn-attach" id="btn-attach" title="Attach Media (Max 10MB)">
+                📎
+              </button>
               <button class="btn-icon btn-voice" onclick="window.orpheus.toggleVoice()" title="Voice Input">
                 🎙️
               </button>

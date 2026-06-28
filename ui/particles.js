@@ -162,6 +162,24 @@ class ParticleSystem {
         speedMult = 3;
         break;
     }
+    
+    const isLight = document.body.classList.contains('light-theme');
+    
+    // In light theme, change to a different, friendly color scheme (e.g. Blue & Pinkish Orange)
+    if (isLight) {
+        if (this.state === 'idle') {
+            primaryHue = 210;    // Deep Blue
+            secondaryHue = 330;  // Magenta/Pink
+        } else if (this.state === 'active') {
+            primaryHue = 200;    // Light Blue
+            secondaryHue = 40;   // Orange
+        }
+    }
+
+    const lBase = isLight ? 40 : 60;
+    const lDark = isLight ? 30 : 50;
+    const lBright = isLight ? 45 : 70;
+    const lCore = isLight ? 50 : 80;
 
     // --- 1. Draw Background Core Glow ---
     const coreGlow = this.ctx.createRadialGradient(
@@ -171,8 +189,8 @@ class ParticleSystem {
     const breathe = Math.sin(this.frameCount * 0.02) * 0.5 + 0.5;
     const coreOpacity = (0.02 + breathe * 0.05 + this.pulsePhase * 0.1) * (glowIntensity / 0.4);
     
-    coreGlow.addColorStop(0, `hsla(${primaryHue}, 100%, 60%, ${coreOpacity})`);
-    coreGlow.addColorStop(0.4, `hsla(${secondaryHue}, 80%, 50%, ${coreOpacity * 0.4})`);
+    coreGlow.addColorStop(0, `hsla(${primaryHue}, 100%, ${lBase}%, ${coreOpacity})`);
+    coreGlow.addColorStop(0.4, `hsla(${secondaryHue}, 80%, ${lDark}%, ${coreOpacity * 0.4})`);
     coreGlow.addColorStop(1, 'transparent');
     this.ctx.fillStyle = coreGlow;
     this.ctx.fillRect(0, 0, this.width, this.height);
@@ -266,7 +284,7 @@ class ParticleSystem {
         
         // Simplified solid color connection for performance
         const p1Hue = p1.hue === 185 ? primaryHue : secondaryHue;
-        this.ctx.strokeStyle = `hsla(${p1Hue}, 80%, 60%, ${opacity})`;
+        this.ctx.strokeStyle = `hsla(${p1Hue}, 80%, ${lBase}%, ${opacity})`;
         this.ctx.stroke();
       }
     }
@@ -298,7 +316,7 @@ class ParticleSystem {
             const hitHue = sig.currentNode.hue === 185 ? primaryHue : secondaryHue;
             this.ctx.beginPath();
             this.ctx.arc(sig.currentNode.x, sig.currentNode.y, sig.currentNode.size * 4, 0, Math.PI * 2);
-            this.ctx.fillStyle = `hsla(${hitHue}, 100%, 70%, ${sig.life * 0.5})`;
+            this.ctx.fillStyle = `hsla(${hitHue}, 100%, ${lBright}%, ${sig.life * 0.5})`;
             this.ctx.fill();
         } else {
             // Lerp position
@@ -309,9 +327,9 @@ class ParticleSystem {
             const sigHue = sig.currentNode.hue === 185 ? primaryHue : secondaryHue;
             this.ctx.beginPath();
             this.ctx.arc(sig.x, sig.y, 2, 0, Math.PI * 2);
-            this.ctx.fillStyle = `hsla(${sigHue}, 100%, 80%, ${sig.life})`;
+            this.ctx.fillStyle = `hsla(${sigHue}, 100%, ${lCore}%, ${sig.life})`;
             this.ctx.shadowBlur = 10;
-            this.ctx.shadowColor = `hsl(${sigHue}, 100%, 50%)`;
+            this.ctx.shadowColor = `hsl(${sigHue}, 100%, ${lDark}%)`;
             this.ctx.fill();
             this.ctx.shadowBlur = 0; // reset
         }
@@ -331,13 +349,13 @@ class ParticleSystem {
       // Outer glow
       this.ctx.beginPath();
       this.ctx.arc(p.x, p.y, particleSize * 4, 0, Math.PI * 2);
-      this.ctx.fillStyle = `hsla(${particleHue}, 100%, 60%, ${particleOpacity * 0.15})`;
+      this.ctx.fillStyle = `hsla(${particleHue}, 100%, ${lBase}%, ${particleOpacity * 0.15})`;
       this.ctx.fill();
 
       // Core
       this.ctx.beginPath();
       this.ctx.arc(p.x, p.y, particleSize, 0, Math.PI * 2);
-      this.ctx.fillStyle = `hsla(${particleHue}, 100%, 80%, ${particleOpacity})`;
+      this.ctx.fillStyle = `hsla(${particleHue}, 100%, ${lCore}%, ${particleOpacity})`;
       this.ctx.fill();
     });
 
@@ -346,7 +364,7 @@ class ParticleSystem {
       const ringRadius = (1 - this.pulsePhase) * Math.max(this.width, this.height) * 0.5;
       this.ctx.beginPath();
       this.ctx.arc(this.centerX, this.centerY, ringRadius, 0, Math.PI * 2);
-      this.ctx.strokeStyle = `hsla(${primaryHue}, 100%, 60%, ${this.pulsePhase * 0.4})`;
+      this.ctx.strokeStyle = `hsla(${primaryHue}, 100%, ${lBase}%, ${this.pulsePhase * 0.4})`;
       this.ctx.lineWidth = 3;
       this.ctx.stroke();
     }
@@ -356,7 +374,7 @@ class ParticleSystem {
       const waveRadius = (1 - this.mouse.clickPulse) * Math.max(this.width, this.height);
       this.ctx.beginPath();
       this.ctx.arc(this.mouse.clickX, this.mouse.clickY, waveRadius, 0, Math.PI * 2);
-      this.ctx.strokeStyle = `hsla(${secondaryHue}, 100%, 70%, ${this.mouse.clickPulse * 0.5})`;
+      this.ctx.strokeStyle = `hsla(${secondaryHue}, 100%, ${lBright}%, ${this.mouse.clickPulse * 0.5})`;
       this.ctx.lineWidth = 2;
       this.ctx.stroke();
     }
