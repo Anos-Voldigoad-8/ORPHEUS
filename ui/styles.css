@@ -131,6 +131,19 @@ body.light-theme {
   --shadow-purple:  0 0 20px var(--purple-glow), 0 0 60px rgba(126, 34, 206, 0.1);
 }
 
+body.light-theme .ai-core-label {
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+body.light-theme .ai-core-label__title {
+  text-shadow: none;
+  color: #374151; /* Softer dark gray instead of glowing purple */
+}
+body.light-theme .ai-core-label__status {
+  color: #6B7280;
+}
+
 /* ── Reset ── */
 *, *::before, *::after {
   margin: 0;
