@@ -264,7 +264,7 @@ class LLMAgent(OrpheusAgent):
 
         logger.info(f"LLMAgent initialized — provider: {self.provider}")
 
-    def process(self, command: str) -> str:
+    def process(self, command: str, attachment: dict = None) -> str:
         """Process command through the configured LLM provider with fallback chain."""
         logger.info(f"LLMAgent [{self.provider}]: '{command[:80]}...'")
 
@@ -276,17 +276,30 @@ class LLMAgent(OrpheusAgent):
             if isinstance(mem.get("content"), str):
                 messages.append(mem)
 
-        messages.append({"role": "user", "content": command})
+        final_command = command
+        
+        # If it's a text-like document, decode and append it to the prompt
+        if attachment:
+            mime = attachment.get("mimeType", "")
+            if any(t in mime for t in ["text", "json", "csv", "javascript", "python", "octet-stream"]):
+                try:
+                    import base64
+                    decoded = base64.b64decode(attachment["data"]).decode('utf-8')
+                    filename = attachment.get("filename", "file")
+                    final_command += f"\n\n[Attached File: {filename}]\n```\n{decoded}\n```"
+                    attachment = None # Clear so it isn't sent as binary image/pdf
+                except Exception as e:
+                    logger.error(f"Failed to decode text attachment: {e}")
 
         # Try provider chain: configured → fallbacks
         providers = self._get_provider_chain()
 
         for provider_name in providers:
             try:
-                result = self._call_provider(provider_name, messages, command)
+                result = self._call_provider(provider_name, messages, final_command, attachment)
                 if result and not result.startswith("Error:"):
                     # Store in memory
-                    self.memory.append({"role": "user", "content": command})
+                    self.memory.append({"role": "user", "content": command}) # Store original text without huge file content
                     self.memory.append({"role": "assistant", "content": result[:500]})
                     return result
             except Exception as e:
@@ -309,18 +322,18 @@ class LLMAgent(OrpheusAgent):
                 chain.append(p)
         return chain
 
-    def _call_provider(self, provider: str, messages: list, raw_command: str) -> str:
+    def _call_provider(self, provider: str, messages: list, raw_command: str, attachment: dict = None) -> str:
         """Call a specific LLM provider."""
         if provider == 'gemini':
-            return self._call_gemini(messages)
+            return self._call_gemini(messages, raw_command, attachment)
         elif provider == 'openai':
-            return self._call_openai(messages)
+            return self._call_openai(messages, raw_command, attachment)
         elif provider == 'ollama':
-            return self._call_ollama(raw_command)
+            return self._call_ollama(raw_command, attachment)
         else:
             return f"Error: Unknown provider '{provider}'"
 
-    def _call_gemini(self, messages: list) -> str:
+    def _call_gemini(self, messages: list, command: str, attachment: dict = None) -> str:
         """Call Google Gemini API using REST (no SDK dependency)."""
         if not self.gemini_key or self.gemini_key == 'PASTE_YOUR_GEMINI_KEY_HERE':
             raise ValueError("Gemini API key not configured")
@@ -344,6 +357,20 @@ class LLMAgent(OrpheusAgent):
                     "role": "model",
                     "parts": [{"text": msg["content"]}]
                 })
+        
+        current_parts = [{"text": command}]
+        if attachment:
+            current_parts.append({
+                "inlineData": {
+                    "mimeType": attachment["mimeType"],
+                    "data": attachment["data"]
+                }
+            })
+            
+        gemini_contents.append({
+            "role": "user",
+            "parts": current_parts
+        })
 
         payload = {
             "contents": gemini_contents,
@@ -378,12 +405,27 @@ class LLMAgent(OrpheusAgent):
 
         return "Gemini returned an empty response."
 
-    def _call_openai(self, messages: list) -> str:
+    def _call_openai(self, messages: list, command: str, attachment: dict = None) -> str:
         """Call OpenAI API using REST."""
         if not self.openai_key:
             raise ValueError("OpenAI API key not configured")
 
         import requests
+        
+        openai_messages = messages.copy()
+        current_content = [{"type": "text", "text": command}]
+        if attachment and "image" in attachment.get("mimeType", ""):
+            current_content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:{attachment['mimeType']};base64,{attachment['data']}"
+                }
+            })
+            
+        openai_messages.append({
+            "role": "user",
+            "content": current_content
+        })
 
         response = requests.post(
             "https://api.openai.com/v1/chat/completions",
@@ -393,7 +435,7 @@ class LLMAgent(OrpheusAgent):
             },
             json={
                 "model": self.openai_model,
-                "messages": messages,
+                "messages": openai_messages,
                 "temperature": self.temperature,
                 "max_tokens": self.max_tokens,
             },
@@ -411,20 +453,25 @@ class LLMAgent(OrpheusAgent):
 
         return "OpenAI returned an empty response."
 
-    def _call_ollama(self, command: str) -> str:
+    def _call_ollama(self, command: str, attachment: dict = None) -> str:
         """Call local Ollama instance."""
         import requests
+        
+        payload = {
+            "model": self.ollama_model,
+            "prompt": f"{self.SYSTEM_PROMPT}\n\nUser: {command}\n\nAssistant:",
+            "stream": False,
+            "options": {
+                "stop": ["\nUser:", "User:"]
+            }
+        }
+        
+        if attachment and "image" in attachment.get("mimeType", ""):
+            payload["images"] = [attachment["data"]]
 
         response = requests.post(
             f"{self.ollama_url}/api/generate",
-            json={
-                "model": self.ollama_model,
-                "prompt": f"{self.SYSTEM_PROMPT}\n\nUser: {command}\n\nAssistant:",
-                "stream": False,
-                "options": {
-                    "stop": ["\nUser:", "User:"]
-                }
-            },
+            json=payload,
             timeout=300,
         )
 
@@ -457,7 +504,7 @@ class AgentHarness:
             "llm": self.llm_agent
         }
  
-    def execute_command(self, command: str) -> str:
+    def execute_command(self, command: str, attachment: dict = None) -> str:
         routing = self.commander.process(command)
  
         if routing["status"] != "success":
@@ -486,7 +533,7 @@ class AgentHarness:
             return agent.process(command)
  
         elif isinstance(agent, LLMAgent):
-            return agent.process(command)
+            return agent.process(command, attachment)
  
         return "Execution complete."
  

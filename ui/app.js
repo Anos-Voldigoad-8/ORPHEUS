@@ -25,7 +25,8 @@
       particles: true,
       reconnect: true
     },
-    role: 'guest'
+    role: 'guest',
+    currentAttachment: null
   };
 
   // ── DOM Cache ──
@@ -396,6 +397,14 @@
     });
   }
 
+  function clearAttachment() {
+    state.currentAttachment = null;
+    const fileInput = $('#chat-file-input');
+    if (fileInput) fileInput.value = '';
+    const preview = $('#attachment-preview');
+    if (preview) preview.style.display = 'none';
+  }
+
   // ── Chat ──
   function sendCommand(text) {
     if (!text.trim()) return;
@@ -419,10 +428,17 @@
     showTypingIndicator(true);
 
     // Send via WebSocket
-    wsSend({
+    const payload = {
       type: 'command',
       command: text,
-    });
+    };
+    if (state.currentAttachment) {
+      payload.attachment = state.currentAttachment;
+    }
+    wsSend(payload);
+
+    // Clear attachment after sending
+    clearAttachment();
 
     // Add activity
     addActivity({
@@ -821,6 +837,58 @@
     const voiceBtn = $('.btn-voice');
     if (voiceBtn) {
       voiceBtn.addEventListener('click', toggleVoice);
+    }
+    
+    // Attachments
+    const btnAttach = $('#btn-attach');
+    const fileInput = $('#chat-file-input');
+    const btnRemoveAttachment = $('#btn-remove-attachment');
+
+    if (btnAttach && fileInput) {
+      btnAttach.addEventListener('click', () => fileInput.click());
+      
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Check size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          showToast('File exceeds 10MB limit.');
+          fileInput.value = '';
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const base64Data = ev.target.result.split(',')[1];
+          state.currentAttachment = {
+            filename: file.name,
+            mimeType: file.type || 'application/octet-stream',
+            data: base64Data
+          };
+
+          // Update UI
+          const preview = $('#attachment-preview');
+          const nameEl = $('#attachment-name');
+          const sizeEl = $('#attachment-size');
+          const iconEl = $('#attachment-icon');
+
+          if (nameEl) nameEl.textContent = file.name;
+          if (sizeEl) sizeEl.textContent = '(' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+          
+          if (iconEl) {
+            if (file.type.startsWith('image/')) iconEl.textContent = '🖼️';
+            else iconEl.textContent = '📄';
+          }
+
+          if (preview) preview.style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    if (btnRemoveAttachment) {
+      btnRemoveAttachment.addEventListener('click', clearAttachment);
     }
     
     // Save Profile button

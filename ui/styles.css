@@ -1025,6 +1025,53 @@ body {
   backdrop-filter: blur(20px);
 }
 
+.attachment-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 240, 255, 0.05);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.attachment-preview__icon {
+  font-size: 1.1rem;
+}
+
+.attachment-preview__name {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.attachment-preview__size {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.attachment-preview__remove {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-left: 8px;
+  transition: color var(--transition-fast);
+}
+
+.attachment-preview__remove:hover {
+  color: var(--red);
+}
+
 .chat-input-wrapper {
   display: flex;
   align-items: flex-end;
