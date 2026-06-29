@@ -4,7 +4,7 @@
    ============================================================ */
 
 /* ── Google Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Chakra+Petch:wght@600&family=JetBrains+Mono:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Chakra+Petch:wght@600&family=JetBrains+Mono:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ── CSS Custom Properties (Design Tokens) ── */
 :root {
@@ -58,7 +58,7 @@
   /* Typography */
   --font-display:   'Chakra Petch', 'Orbitron', sans-serif;
   --font-mono:      'JetBrains Mono', 'Share Tech Mono', 'Fira Code', monospace;
-  --font-body:      'Inter', -apple-system, sans-serif;
+  --font-body:      'Plus Jakarta Sans', -apple-system, sans-serif;
 
   /* Sizing */
   --sidebar-width:  260px;
@@ -1183,6 +1183,14 @@ body {
 /* Voice Button */
 .btn-voice {
   position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(90deg, rgba(34, 211, 168, 0.15), rgba(0, 229, 255, 0.05), rgba(168, 85, 247, 0.15));
+  box-shadow: -2px 0 8px rgba(34, 211, 168, 0.2), 2px 0 8px rgba(168, 85, 247, 0.2);
+}
+body.light-theme .btn-voice {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: linear-gradient(90deg, rgba(34, 211, 168, 0.1), rgba(255, 255, 255, 0.8), rgba(168, 85, 247, 0.1));
+  box-shadow: -2px 0 6px rgba(34, 211, 168, 0.15), 2px 0 6px rgba(168, 85, 247, 0.15);
 }
 
 .btn-voice.listening {
