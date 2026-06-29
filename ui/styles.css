@@ -499,7 +499,7 @@ body {
   display: flex;
   flex-direction: column;
   animation: viewBloomSplash 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  transform-origin: 0% 0%;
+  transform-origin: 0% var(--bloom-origin-y, 0px);
   will-change: transform, opacity, filter;
 }
 
