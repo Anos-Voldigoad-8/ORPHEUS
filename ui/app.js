@@ -782,8 +782,14 @@
     // Navigation
     $$('.nav-item').forEach((item) => {
       item.addEventListener('click', () => {
-        const view = item.dataset.view;
-        if (view) switchView(view);
+        const viewName = item.dataset.view;
+        if (viewName) {
+          const rect = item.getBoundingClientRect();
+          const mainRect = document.getElementById('main-content').getBoundingClientRect();
+          const originY = rect.top - mainRect.top + (rect.height / 2);
+          document.documentElement.style.setProperty('--bloom-origin-y', `${originY}px`);
+          switchView(viewName);
+        }
       });
     });
 
