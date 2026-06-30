@@ -156,6 +156,17 @@ body.light-theme .header__clock {
   box-shadow: -2px 0 6px rgba(34, 211, 168, 0.15), 2px 0 6px rgba(168, 85, 247, 0.15);
 }
 
+body.light-theme .sidebar__user {
+  background: linear-gradient(135deg, rgba(0, 119, 153, 0.08), rgba(126, 34, 206, 0.08));
+  border: 1px solid rgba(0, 119, 153, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+body.light-theme .user-info__role {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
 /* ── Reset ── */
 *, *::before, *::after {
   margin: 0;
