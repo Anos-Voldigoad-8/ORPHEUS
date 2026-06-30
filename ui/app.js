@@ -238,23 +238,20 @@
     const nameEl = $('.user-info__name');
     const avatarEl = $('.user-avatar');
     
-    if (nameEl) nameEl.textContent = profile.name;
+    // Ensure name is always displayed even if profile.name is empty
+    if (nameEl) nameEl.textContent = profile.name || 'Anos-Voldigoad-8';
     
     if (avatarEl) {
-      const initial = profile.avatar.substring(0, 1).toUpperCase();
-      const animeAvatars = {
-        "Goku": "🐉", "Gohan": "👓", "Vegeta": "💥", "Bulma": "🔧", 
-        "Rangiku": "🌸", "Yoruichi": "🐈‍⬛", "Tsunade": "🐌", "Itachi": "👁️", 
-        "Jiraiya": "🐸", "Naruto": "🦊", "Hinata": "👁️‍🗨️", "Ichigo": "🍓", 
-        "Orihime": "🧚", "Aizen": "🦋", "Luffy": "👒", "Zoro": "⚔️", 
-        "Boa Hancock": "🐍", "Robin": "📖", "Nami": "🍊", "Sanji": "🚬"
-      };
-      if (animeAvatars[profile.avatar]) {
-        avatarEl.textContent = animeAvatars[profile.avatar];
-      } else if (profile.avatar !== 'A') {
-        avatarEl.textContent = initial;
+      if (profile.avatar && profile.avatar !== 'A') {
+        const imgName = profile.avatar.replace(/ /g, '_');
+        avatarEl.innerHTML = `<img src="/ui/assets/avatars/${imgName}.jpg" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+        avatarEl.style.background = 'transparent';
+        avatarEl.style.boxShadow = '0 0 0 2px var(--accent-primary)';
       } else {
-        avatarEl.textContent = profile.name.substring(0, 1).toUpperCase();
+        const initial = (profile.name || 'A').substring(0, 1).toUpperCase();
+        avatarEl.innerHTML = initial;
+        avatarEl.style.background = '';
+        avatarEl.style.boxShadow = '';
       }
     }
     
